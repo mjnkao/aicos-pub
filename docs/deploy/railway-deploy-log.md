@@ -461,3 +461,65 @@ Final verification:
 - `/health` reported `search_engine: postgresql_hybrid`.
 - `/health` reported `search_status.embeddings: enabled`.
 - `/health` reported `index.embedding_coverage: 1.0`.
+
+### 2026-04-28 Codex A2-core public MCP token
+
+Actions:
+
+- Added Railway bearer token label `codex-a2-core-pub`.
+- Policy for `codex-a2-core-pub`:
+  - read `projects/*`
+  - write `projects/aicos-pub`
+- Did not add `codex-a2-core-pub` to
+  `AICOS_DAEMON_INTERNAL_TOKEN_LABELS`, so it is not an internal maintainer
+  token for protected private scopes.
+- Stored the token locally outside git:
+  - `<codex-home>/secrets/aicos-pub-codex-a2-core-pub.token`
+  - `.runtime-home/codex-a2-core-pub-token.md`
+- Added Codex MCP config in `<codex-home>/config.toml`:
+  - server name: `aicos_pub`
+  - URL: `https://aicos-pub-production.up.railway.app/mcp`
+  - auth: `Authorization: Bearer <codex-a2-core-pub-token>`
+
+Issue:
+
+- Initial write smoke to `projects/aicos-pub` returned
+  `missing_project_scope` because the Railway public corpus did not yet include
+  `brain/projects/aicos-pub`.
+
+Fix:
+
+- Added minimal public MCP scope files:
+  - `brain/projects/aicos-pub/canonical/project-profile.md`
+  - `brain/projects/aicos-pub/working/handoff/current.md`
+  - `brain/projects/aicos-pub/working/status-items/README.md`
+  - `brain/projects/aicos-pub/working/feedback/README.md`
+- Committed and pushed commit `0d6abca`.
+- Deployed with:
+
+```bash
+railway up --ci --message "Add aicos-pub public MCP scope"
+```
+
+Second issue:
+
+- Deploy again hit the known PostgreSQL schema lock timeout and temporarily
+  reported `search_engine: markdown_direct`.
+
+Fix:
+
+```bash
+railway service restart --service aicos-pub --yes --json
+```
+
+Final verification:
+
+- `/health` authenticated with `codex-a2-core-pub`.
+- `/health` reported `search_engine: postgresql_hybrid`.
+- `/health` reported `search_status.postgresql: active`.
+- `/health` reported `search_status.embeddings: enabled`.
+- `/health` reported `index.embedding_coverage: 1.0`.
+- `/health` breakdown included `projects/aicos-pub` docs.
+- MCP `tools/list` returned 17 tools with `codex-a2-core-pub`.
+- MCP `aicos_record_feedback` successfully wrote to
+  `brain/projects/aicos-pub/working/feedback/20260428t101817z-8057b9bc4a.md`.

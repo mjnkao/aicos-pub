@@ -44,8 +44,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "packages/aicos-kernel"))
 
 from aicos_kernel.mcp_cache import ResponseCache  # noqa: E402
-from aicos_kernel.mcp_contract_status import contract_status_payload  # noqa: E402
 from aicos_kernel.mcp_read_serving import AicosMcpReadError, dispatch_read_surface  # noqa: E402
+from aicos_kernel.mcp_tool_definitions import build_tools  # noqa: E402
+from aicos_kernel.mcp_tool_schema import READ_IDENTITY_REQUIRED, READ_TOOL_NAMES, WORK_TYPE_ENUM, WRITE_TOOL_NAMES, apply_aicos_tool_schema_extensions  # noqa: E402
 from aicos_kernel.mcp_write_serving import AicosMcpWriteError, dispatch_write_tool  # noqa: E402
 
 logger = logging.getLogger("aicos-daemon")
@@ -262,8 +263,6 @@ def _result_status(result: dict[str, Any] | None) -> tuple[str, str | None]:
     return "ok", None
 
 
-WORK_TYPE_ENUM = ["code", "content", "design", "research", "ops", "review", "planning", "data", "mixed", "orientation"]
-READ_IDENTITY_REQUIRED = ["agent_family", "agent_instance_id", "work_type", "work_lane", "execution_context"]
 READ_IDENTITY_FIELD_HELP = {
     "agent_family": "Family/tool name of the reader, e.g. codex, claude-code, openclaw.",
     "agent_instance_id": "Stable id for this thread/worker/session, e.g. vm-alpha-01 or codex-thread-20260423-01.",
@@ -442,8 +441,8 @@ def _pg_query(arguments: dict[str, Any]) -> dict[str, Any] | None:
 # Contract
 # ---------------------------------------------------------------------------
 
-CONTRACT_STATUS = contract_status_payload()
-WRITE_CONTRACT_ACK_VALUE = str(CONTRACT_STATUS["write_contract_ack_value"])
+ # Contract ack and read identity schema extensions are injected via
+ # aicos_kernel.mcp_tool_schema.apply_aicos_tool_schema_extensions.
 
 # ---------------------------------------------------------------------------
 # Tool definitions (mirrors integrations/local-mcp-bridge/aicos_mcp_stdio.py)
@@ -729,97 +728,8 @@ TOOLS: list[dict[str, Any]] = [
     },
 ]
 
-READ_IDENTITY_PROPERTIES: dict[str, dict[str, Any]] = {
-    "actor": {"type": "string", "description": "Optional AICOS service actor. External clients may omit this or send their client name; AICOS normalizes non-explicit A2 values to A1. Use A2-Core-C/R only when maintaining AICOS itself."},
-    "agent_family": {"type": "string", "description": "Required client/agent family for audit correlation, e.g. codex, claude-code, openclaw."},
-    "agent_instance_id": {"type": "string", "description": "Required per-agent/per-thread/per-worker instance id for audit correlation."},
-    "work_type": {"type": "string", "enum": WORK_TYPE_ENUM, "description": "Required current work type for read-side audit context. Use orientation for first-contact/bootstrap reads."},
-    "work_lane": {"type": "string", "description": "Required current work lane for read-side audit context. Use intake for first-contact/bootstrap reads when the real lane is not known yet."},
-    "worktree_path": {"type": "string", "description": "Required when the reader is a code worker. Absolute path of the worktree/checkout."},
-    "work_branch": {"type": "string", "description": "Recommended branch name when the reader is a code worker."},
-    "execution_context": {"type": "string", "description": "Required execution context such as codex-desktop, claude-desktop, openclaw-vm, cli."},
-}
-
-RUNTIME_CONTEXT_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "description": "Required lightweight runtime identity for this MCP call. A1 agents normally only need this object.",
-    "properties": {
-        "runtime": {
-            "type": "string",
-            "description": "AICOS runtime receiving this MCP call, e.g. private-local-aicos or public-railway-aicos.",
-        },
-        "mcp_name": {
-            "type": "string",
-            "description": "Client-side MCP server alias, e.g. aicos_local_private or aicos_railway_public.",
-        },
-        "agent_position": {
-            "type": "string",
-            "enum": ["external_agent", "internal_agent", "human_operator", "system"],
-            "description": "Position relative to the runtime receiving this call.",
-        },
-        "functional_role": {
-            "type": "string",
-            "description": "Task/business role for this write, e.g. reviewer, CTO/fullstack dev, runtime maintainer.",
-        },
-    },
-    "required": ["runtime", "mcp_name", "agent_position"],
-    "additionalProperties": False,
-}
-
-RUNTIME_IDENTITY_ENTRY_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "description": "One runtime-relative identity entry for A2/cross-runtime work.",
-    "properties": {
-        "runtime": {"type": "string"},
-        "mcp_name": {"type": "string"},
-        "project_scope": {"type": "string"},
-        "agent_position": {"type": "string", "enum": ["external_agent", "internal_agent", "human_operator", "system"]},
-        "actor_role": {"type": "string"},
-        "functional_role": {"type": "string"},
-    },
-    "required": ["runtime", "mcp_name", "project_scope", "agent_position", "actor_role", "functional_role"],
-    "additionalProperties": False,
-}
-
-RUNTIME_IDENTITY_MAP_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "description": "Required for A2 writes. Map each relevant runtime label to its runtime-relative identity, e.g. identity_private and identity_public.",
-    "additionalProperties": RUNTIME_IDENTITY_ENTRY_SCHEMA,
-}
-
-WRITE_TOOL_NAMES: set[str] = {
-    "aicos_record_checkpoint", "aicos_write_task_update", "aicos_write_handoff_update",
-    "aicos_update_status_item", "aicos_register_artifact_ref", "aicos_record_feedback",
-}
-READ_TOOL_NAMES: set[str] = {
-    "aicos_get_startup_bundle", "aicos_get_handoff_current", "aicos_get_packet_index",
-    "aicos_get_task_packet", "aicos_get_status_items", "aicos_get_workstream_index",
-    "aicos_get_context_registry", "aicos_get_project_registry", "aicos_get_feedback_digest",
-    "aicos_get_project_health", "aicos_query_project_context",
-}
-
-for _tool in TOOLS:
-    if _tool["name"] in READ_TOOL_NAMES:
-        _tool["inputSchema"]["properties"].update(READ_IDENTITY_PROPERTIES)
-        if "actor" in _tool["inputSchema"].get("required", []):
-            _tool["inputSchema"]["required"].remove("actor")
-        for _field in READ_IDENTITY_REQUIRED:
-            if _field not in _tool["inputSchema"]["required"]:
-                _tool["inputSchema"]["required"].append(_field)
-for _tool in TOOLS:
-    if _tool["name"] not in WRITE_TOOL_NAMES:
-        continue
-    _schema = _tool["inputSchema"]
-    _schema["properties"]["mcp_contract_ack"] = {
-        "type": "string", "const": WRITE_CONTRACT_ACK_VALUE,
-        "description": "Required write-contract acknowledgment.",
-    }
-    _schema["properties"]["runtime_context"] = RUNTIME_CONTEXT_SCHEMA
-    _schema["properties"]["runtime_identity_map"] = RUNTIME_IDENTITY_MAP_SCHEMA
-    if "mcp_contract_ack" not in _schema["required"]:
-        _schema["required"] = ["mcp_contract_ack", *_schema["required"]]
-    if "runtime_context" not in _schema["required"]:
-        _schema["required"].append("runtime_context")
+TOOLS = build_tools()
+apply_aicos_tool_schema_extensions(TOOLS)
 
 # ---------------------------------------------------------------------------
 # JSON-RPC helpers

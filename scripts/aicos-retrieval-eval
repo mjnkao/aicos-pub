@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import collections
 import json
 import os
 import sys
@@ -16,6 +17,20 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CORPUS = REPO_ROOT / "brain/projects/aicos/evidence/research/aicos-retrieval-eval-corpus-20260428.json"
 DEFAULT_URL = os.environ.get("AICOS_MCP_URL") or os.environ.get("AICOS_MCP_DAEMON_URL") or "http://127.0.0.1:8000/mcp"
+DEFAULT_ENV_FILE = Path(os.environ.get("AICOS_DAEMON_ENV_FILE", str(REPO_ROOT / ".runtime-home/aicos-daemon.env")))
+
+
+def load_env_file_token(path: Path) -> str:
+    if not path.exists():
+        return ""
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        if key.strip() == "AICOS_DAEMON_TOKEN":
+            return value.strip().strip("'").strip('"')
+    return ""
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -165,6 +180,23 @@ def run_eval(corpus: dict[str, Any], url: str, token: str, max_results: int) -> 
         rows.append(row)
 
     total = len(rows)
+    grouped: dict[str, list[dict[str, Any]]] = collections.defaultdict(list)
+    for row in rows:
+        grouped[str(row.get("scope") or "unknown")].append(row)
+    by_scope: dict[str, dict[str, Any]] = {}
+    for scope, scope_rows in sorted(grouped.items()):
+        scope_total = len(scope_rows)
+        scope_top3 = sum(1 for row in scope_rows if row.get("top3_hit"))
+        scope_top5 = sum(1 for row in scope_rows if row.get("top5_hit"))
+        scope_errors = sum(1 for row in scope_rows if row.get("error"))
+        by_scope[scope] = {
+            "item_count": scope_total,
+            "top3_hits": scope_top3,
+            "top5_hits": scope_top5,
+            "errors": scope_errors,
+            "top3_rate": round(scope_top3 / scope_total, 4) if scope_total else 0,
+            "top5_rate": round(scope_top5 / scope_total, 4) if scope_total else 0,
+        }
     return {
         "schema_version": "0.1",
         "kind": "aicos.retrieval_eval_result",
@@ -176,6 +208,7 @@ def run_eval(corpus: dict[str, Any], url: str, token: str, max_results: int) -> 
         "errors": errors,
         "top3_rate": round(top3_hits / total, 4) if total else 0,
         "top5_rate": round(top5_hits / total, 4) if total else 0,
+        "by_scope": by_scope,
         "rows": rows,
     }
 
@@ -187,6 +220,13 @@ def print_text(report: dict[str, Any]) -> None:
     print(f"- top3 hits: {report['top3_hits']}/{total}")
     print(f"- top5 hits: {report['top5_hits']}/{total}")
     print(f"- errors: {report['errors']}")
+    if report.get("by_scope"):
+        print("- by scope:")
+        for scope, stats in report["by_scope"].items():
+            print(
+                f"  - {scope}: top3 {stats['top3_hits']}/{stats['item_count']}, "
+                f"top5 {stats['top5_hits']}/{stats['item_count']}, errors {stats['errors']}"
+            )
     misses = [row for row in report["rows"] if not row["top5_hit"] or row["error"]]
     if not misses:
         print("- top5 misses: none")
@@ -203,24 +243,68 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run AICOS retrieval eval corpus through HTTP MCP.")
     parser.add_argument("--corpus", default=str(DEFAULT_CORPUS), help="Path to eval corpus JSON.")
     parser.add_argument("--url", default=DEFAULT_URL, help="HTTP MCP URL, default from AICOS_MCP_URL/AICOS_MCP_DAEMON_URL.")
-    parser.add_argument("--token", default=os.environ.get("AICOS_DAEMON_TOKEN", ""), help="Bearer token. Prefer env AICOS_DAEMON_TOKEN.")
+    parser.add_argument(
+        "--token",
+        default=os.environ.get("AICOS_DAEMON_TOKEN", "") or load_env_file_token(DEFAULT_ENV_FILE),
+        help="Bearer token. Prefer env AICOS_DAEMON_TOKEN; falls back to .runtime-home/aicos-daemon.env.",
+    )
     parser.add_argument("--max-results", type=int, default=8, help="Max query results per item.")
+    parser.add_argument("--require-scope", action="append", default=[], help="Require corpus/report to include at least one item for this scope. Repeatable.")
+    parser.add_argument("--min-top3-rate", type=float, default=None, help="Fail (exit 1) when top3_rate is below this threshold.")
+    parser.add_argument("--min-top5-rate", type=float, default=None, help="Fail (exit 1) when top5_rate is below this threshold.")
+    parser.add_argument(
+        "--gate",
+        action="store_true",
+        help="Enable regression-gate defaults: require projects/aicos and projects/sample-project; min-top5-rate=0.98; min-top3-rate=0.95.",
+    )
     parser.add_argument("--format", choices=("text", "json"), default="text", help="Output format.")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str]) -> int:
     args = parse_args(argv)
+    if args.gate:
+        if not args.require_scope:
+            args.require_scope = ["projects/aicos", "projects/sample-project"]
+        if args.min_top5_rate is None:
+            args.min_top5_rate = 0.98
+        if args.min_top3_rate is None:
+            args.min_top3_rate = 0.95
     corpus_path = Path(args.corpus)
     if not corpus_path.is_absolute():
         corpus_path = (Path.cwd() / corpus_path).resolve()
     corpus = load_json(corpus_path)
     report = run_eval(corpus, args.url.rstrip("/"), args.token, args.max_results)
+    required_scopes = [str(scope).strip() for scope in (args.require_scope or []) if str(scope).strip()]
+    missing_required_scopes = [scope for scope in required_scopes if scope not in (report.get("by_scope") or {})]
+    gate_failed = False
+    gate_reasons: list[str] = []
+    if missing_required_scopes:
+        gate_failed = True
+        gate_reasons.append(f"missing required scopes: {', '.join(missing_required_scopes)}")
+    if args.min_top3_rate is not None and report.get("top3_rate", 0) < float(args.min_top3_rate):
+        gate_failed = True
+        gate_reasons.append(f"top3_rate {report.get('top3_rate')} < {float(args.min_top3_rate)}")
+    if args.min_top5_rate is not None and report.get("top5_rate", 0) < float(args.min_top5_rate):
+        gate_failed = True
+        gate_reasons.append(f"top5_rate {report.get('top5_rate')} < {float(args.min_top5_rate)}")
     if args.format == "json":
         print(json.dumps(report, ensure_ascii=False, indent=2))
     else:
         print_text(report)
-    return 1 if report["errors"] else 0
+        if required_scopes:
+            print(f"- required scopes: {', '.join(required_scopes)}")
+        if args.min_top3_rate is not None:
+            print(f"- gate min_top3_rate: {float(args.min_top3_rate)}")
+        if args.min_top5_rate is not None:
+            print(f"- gate min_top5_rate: {float(args.min_top5_rate)}")
+        if gate_failed:
+            print("- gate: FAIL")
+            for reason in gate_reasons:
+                print(f"  - {reason}")
+        elif required_scopes or args.min_top3_rate is not None or args.min_top5_rate is not None:
+            print("- gate: PASS")
+    return 1 if report["errors"] or gate_failed else 0
 
 
 if __name__ == "__main__":

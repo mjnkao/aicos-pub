@@ -52,8 +52,8 @@ Every write payload needs this base:
   "work_lane": "telegram-pipeline",
   "execution_context": "openclaw-vm",
   "runtime_context": {
-    "runtime": "public-railway-aicos",
-    "mcp_name": "aicos_railway_public",
+    "runtime": "private-local-aicos",
+    "mcp_name": "aicos_local_private",
     "agent_position": "external_agent",
     "functional_role": "pipeline worker"
   }
@@ -67,8 +67,8 @@ If `actor_role` is `A2-Core-C` or `A2-Core-R`, also include
 {
   "runtime_identity_map": {
     "identity_current": {
-      "runtime": "public-railway-aicos",
-      "mcp_name": "aicos_railway_public",
+      "runtime": "private-local-aicos",
+      "mcp_name": "aicos_local_private",
       "project_scope": "projects/aicos",
       "agent_position": "internal_agent",
       "actor_role": "A2-Core-C",

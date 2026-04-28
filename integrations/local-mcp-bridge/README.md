@@ -128,8 +128,8 @@ CLI debug surface:
 Semantic write debug surface:
 
 ```bash
-./aicos mcp template checkpoint --scope projects/sample-project --actor-role A1 --runtime public-railway-aicos --mcp-name aicos_railway_public --agent-position external_agent
-./aicos mcp template status-item --scope projects/aicos --actor-role A2-Core-C --runtime public-railway-aicos --mcp-name aicos_railway_public --agent-position internal_agent --functional-role "AICOS maintainer"
+./aicos mcp template checkpoint --scope projects/sample-project --actor-role A1 --runtime private-local-aicos --mcp-name aicos_local_private --agent-position external_agent
+./aicos mcp template status-item --scope projects/aicos --actor-role A2-Core-C --runtime private-local-aicos --mcp-name aicos_local_private --agent-position internal_agent --functional-role "AICOS maintainer"
 ```
 
 Stdio JSON-RPC style smoke test:

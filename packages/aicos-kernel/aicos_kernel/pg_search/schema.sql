@@ -37,6 +37,11 @@ CREATE TABLE IF NOT EXISTS aicos_context_docs (
   mtime            TIMESTAMPTZ NOT NULL,
   freshness_label  TEXT    NOT NULL DEFAULT 'fresh', -- fresh, aging, stale, stable
 
+  -- Derived structured metadata. This is a projection from markdown truth,
+  -- not a separate source of truth.
+  index_metadata   JSONB   NOT NULL DEFAULT '{}'::jsonb,
+  index_schema_version INTEGER NOT NULL DEFAULT 1,
+
   -- Dedup / change detection
   content_hash     TEXT,
 
@@ -58,6 +63,10 @@ CREATE TABLE IF NOT EXISTS aicos_context_docs (
   CONSTRAINT aicos_ctx_fresh_check    CHECK (freshness_label IN ('fresh','aging','stale','stable'))
 );
 
+ALTER TABLE aicos_context_docs
+  ADD COLUMN IF NOT EXISTS index_metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS index_schema_version INTEGER NOT NULL DEFAULT 1;
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_aicos_ctx_scope   ON aicos_context_docs(scope);
 CREATE INDEX IF NOT EXISTS idx_aicos_ctx_kind    ON aicos_context_docs(context_kind);
@@ -66,6 +75,7 @@ CREATE INDEX IF NOT EXISTS idx_aicos_ctx_search  ON aicos_context_docs USING GIN
 CREATE INDEX IF NOT EXISTS idx_aicos_ctx_roles   ON aicos_context_docs USING GIN(role_tags);
 CREATE INDEX IF NOT EXISTS idx_aicos_ctx_mtime   ON aicos_context_docs(mtime DESC);
 CREATE INDEX IF NOT EXISTS idx_aicos_ctx_title   ON aicos_context_docs USING GIN(title gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_aicos_ctx_metadata ON aicos_context_docs USING GIN(index_metadata);
 
 -- -----------------------------------------------------------------------
 -- Trigger: rebuild search_vector on content change

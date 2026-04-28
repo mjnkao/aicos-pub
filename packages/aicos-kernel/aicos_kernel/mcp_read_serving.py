@@ -807,6 +807,54 @@ def direct_read_nudges_for_query(query: str) -> list[dict[str, str]]:
     return nudges
 
 
+def retrieval_recipes_for_query(query: str) -> list[dict[str, Any]]:
+    """Fallback markdown-direct equivalent of PG retrieval recipes."""
+    lowered = query.lower()
+    recipes: list[dict[str, Any]] = []
+
+    def has_any(terms: list[str]) -> bool:
+        return any(term in lowered for term in terms)
+
+    def add(recipe_id: str, title: str, when: str, tools: list[str]) -> None:
+        if not any(item["id"] == recipe_id for item in recipes):
+            recipes.append({
+                "id": recipe_id,
+                "title": title,
+                "when": when,
+                "steps": [{"tool": tool} for tool in tools],
+            })
+
+    if has_any(["đang làm", "làm đến đâu", "trạng thái", "current progress", "current status", "status of", "where are we", "workstream", "work stream", "việc gì tiếp", "làm gì tiếp", "ai đang làm"]):
+        add(
+            "manager_progress_review",
+            "Manager progress review",
+            "Use when a human asks current progress, active work, agents, or next work.",
+            ["aicos_get_startup_bundle", "aicos_get_handoff_current", "aicos_get_status_items", "aicos_get_project_health", "aicos_query_project_context"],
+        )
+    if has_any(["takeover", "handoff", "avoid overlap", "stepping on", "tiếp tục", "bàn giao", "dẫm chân", "chồng chéo"]):
+        add(
+            "worker_takeover",
+            "Worker takeover / avoid overlap",
+            "Use when an A1 needs to continue work safely.",
+            ["aicos_get_handoff_current", "aicos_get_status_items", "aicos_query_project_context", "aicos_get_feedback_digest"],
+        )
+    if has_any(["cto", "ceo", "architecture", "kiến trúc", "đánh giá", "phản biện", "option c", "provider", "semantic core"]):
+        add(
+            "architecture_review",
+            "Architecture / CTO review",
+            "Use when evaluating architecture, scalability, or Option C alignment.",
+            ["aicos_get_startup_bundle", "aicos_get_handoff_current", "aicos_query_project_context", "aicos_get_status_items"],
+        )
+    if has_any(["mcp", "đọc ghi", "read and write", "feedback", "tool friction", "sử dụng mcp"]):
+        add(
+            "mcp_usage_and_feedback",
+            "MCP usage and feedback",
+            "Use when learning MCP usage or reporting AICOS friction.",
+            ["aicos_query_project_context", "aicos_get_feedback_digest", "aicos_record_feedback"],
+        )
+    return recipes
+
+
 def query_project_context(actor: str, scope: str, arguments: dict[str, Any]) -> dict[str, Any]:
     query = optional_read_string(arguments, "query", max_len=300)
     if not query:
@@ -880,6 +928,7 @@ def query_project_context(actor: str, scope: str, arguments: dict[str, Any]) -> 
         "include_stale": include_stale,
         "default_hidden_statuses": [] if include_stale else sorted(DEFAULT_HIDDEN_STATUSES),
         "direct_read_nudges": direct_read_nudges_for_query(query),
+        "retrieval_recipes": retrieval_recipes_for_query(query),
         "results": results,
         "boundary": "Bounded keyword/metadata search over AICOS hot context. Results are refs and compact summaries, not source-of-truth promotion and not full file dumps.",
     }

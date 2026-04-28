@@ -1432,9 +1432,12 @@ def mcp_doctor(args: argparse.Namespace) -> int:
         add("stdio_tools_list", ok, detail)
 
     if args.mode in {"all", "daemon"}:
+        token = args.token or os.environ.get("AICOS_DAEMON_TOKEN", "")
+        if not token:
+            token = load_daemon_env_file().get("AICOS_DAEMON_TOKEN", "")
         request = urllib.request.Request(args.daemon_url.rstrip("/") + "/health")
-        if args.token:
-            request.add_header("Authorization", f"Bearer {args.token}")
+        if token:
+            request.add_header("Authorization", f"Bearer {token}")
         try:
             with urllib.request.urlopen(request, timeout=5) as response:
                 body = response.read().decode("utf-8")

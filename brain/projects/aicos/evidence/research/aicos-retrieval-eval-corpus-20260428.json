@@ -1,13 +1,15 @@
 {
   "schema_version": "0.2",
-  "status": "expanded A1 manager retrieval eval corpus",
+  "status": "expanded AICOS + sample project retrieval eval corpus",
   "date": "2026-04-28",
-  "scope": "projects/aicos",
+  "scope": "multi-project: projects/aicos and projects/sample-project primary regression; projects/mjnclaw smoke coverage",
   "purpose": "Measure whether AICOS retrieval helps human managers and A1/A2 agents find the right context with low over-read.",
   "guardrails": [
     "Use HTTP MCP query behavior as the regression target.",
     "Keep questions small-team friendly and avoid requiring graph engine, LLM reranker, or broad repo ingestion.",
-    "Expected refs are source pointers, not full-answer truth by themselves."
+    "Expected refs are source pointers, not full-answer truth by themselves.",
+    "Report per-project hit rates; do not treat aggregate success as proof that all project shapes are covered.",
+    "Search or A1 retrieval changes should run this corpus against both projects/aicos and projects/sample-project before being considered stable."
   ],
   "items": [
     {
@@ -19,7 +21,13 @@
       "work_type": "orientation",
       "work_lane": "intake",
       "question": "what should a new A1 read before starting work on AICOS?",
-      "context_kinds": ["current_state", "current_direction", "handoff", "canonical", "policy"],
+      "context_kinds": [
+        "current_state",
+        "current_direction",
+        "handoff",
+        "canonical",
+        "policy"
+      ],
       "expected_refs": [
         "brain/projects/aicos/working/current-state.md",
         "brain/projects/aicos/working/current-direction.md",
@@ -37,7 +45,13 @@
       "work_type": "orientation",
       "work_lane": "mcp-use",
       "question": "how should an A1 use AICOS MCP to read and write context?",
-      "context_kinds": ["artifacts", "contract", "policy", "status_items", "evidence"],
+      "context_kinds": [
+        "artifacts",
+        "contract",
+        "policy",
+        "status_items",
+        "evidence"
+      ],
       "expected_refs": [
         "brain/projects/aicos/working/artifact-refs/artifact-write-cookbook-20260428.md",
         "brain/projects/aicos/working/artifact-refs/artifact-query-guide-20260428.md",
@@ -55,7 +69,11 @@
       "work_type": "orientation",
       "work_lane": "project-discovery",
       "question": "what projects exist in AICOS and how do I discover them?",
-      "context_kinds": ["project_registry", "current_state", "canonical"],
+      "context_kinds": [
+        "project_registry",
+        "current_state",
+        "canonical"
+      ],
       "expected_refs": [
         "brain/shared/project-registry.md",
         "brain/projects/aicos/working/current-state.md"
@@ -72,7 +90,13 @@
       "work_type": "orientation",
       "work_lane": "role-aware-reading",
       "question": "in an AICOS project what should a manager read before assigning or reviewing work?",
-      "context_kinds": ["current_state", "current_direction", "handoff", "status_items", "policy"],
+      "context_kinds": [
+        "current_state",
+        "current_direction",
+        "handoff",
+        "status_items",
+        "policy"
+      ],
       "expected_refs": [
         "brain/projects/aicos/working/context-ladder.md",
         "brain/projects/aicos/working/current-state.md",
@@ -90,7 +114,13 @@
       "work_type": "orientation",
       "work_lane": "role-aware-reading",
       "question": "in the sample project project what should a worker read before continuing implementation?",
-      "context_kinds": ["current_state", "current_direction", "handoff", "task_state", "canonical"],
+      "context_kinds": [
+        "current_state",
+        "current_direction",
+        "handoff",
+        "task_state",
+        "canonical"
+      ],
       "expected_refs": [
         "brain/projects/sample-project/working/context-ladder.md",
         "brain/projects/sample-project/working/current-state.md",
@@ -108,7 +138,11 @@
       "work_type": "planning",
       "work_lane": "architecture-overview",
       "question": "what should I read to understand the current AICOS architecture direction?",
-      "context_kinds": ["evidence", "current_direction", "status_items"],
+      "context_kinds": [
+        "evidence",
+        "current_direction",
+        "status_items"
+      ],
       "expected_refs": [
         "brain/projects/aicos/evidence/research/aicos-option-c-architecture-north-star-20260428.md",
         "brain/projects/aicos/evidence/research/aicos-phase-2-semantic-core-boundary-20260428.md",
@@ -126,7 +160,11 @@
       "work_type": "planning",
       "work_lane": "next-work",
       "question": "what should be done next in AICOS after phase 0.5 and search stabilization?",
-      "context_kinds": ["status_items", "evidence", "current_direction"],
+      "context_kinds": [
+        "status_items",
+        "evidence",
+        "current_direction"
+      ],
       "expected_refs": [
         "brain/projects/aicos/working/status-items/aicos-search-focus-a1-context-retrieval.md",
         "brain/projects/aicos/working/status-items/aicos-phase-5-retrieval-runtime-reduction.md",
@@ -146,7 +184,14 @@
       "work_type": "orientation",
       "work_lane": "startup-progress-review",
       "question": "kiểm tra xem dự án đang làm đến đâu rồi, có những việc gì đang làm, ai đang làm, chúng ta nên làm việc gì tiếp?",
-      "context_kinds": ["current_state", "current_direction", "handoff", "status_items", "task_state", "policy"],
+      "context_kinds": [
+        "current_state",
+        "current_direction",
+        "handoff",
+        "status_items",
+        "task_state",
+        "policy"
+      ],
       "expected_refs": [
         "brain/projects/aicos/working/handoff/current.md",
         "brain/projects/aicos/working/current-state.md",
@@ -165,7 +210,12 @@
       "work_type": "ops",
       "work_lane": "coordination",
       "question": "which agents are doing what and how do I avoid overlapping with them?",
-      "context_kinds": ["handoff", "status_items", "task_state", "policy"],
+      "context_kinds": [
+        "handoff",
+        "status_items",
+        "task_state",
+        "policy"
+      ],
       "expected_refs": [
         "brain/projects/aicos/working/handoff/current.md",
         "brain/shared/policies/agent-coordination-policy.md",
@@ -183,7 +233,12 @@
       "work_type": "ops",
       "work_lane": "handoff",
       "question": "how do I continue sample project project work without stepping on another agent?",
-      "context_kinds": ["handoff", "task_state", "status_items", "policy"],
+      "context_kinds": [
+        "handoff",
+        "task_state",
+        "status_items",
+        "policy"
+      ],
       "expected_refs": [
         "brain/projects/sample-project/working/handoff/current.md",
         "brain/shared/policies/agent-coordination-policy.md",
@@ -201,7 +256,13 @@
       "work_type": "ops",
       "work_lane": "feedback",
       "question": "how do I report AICOS MCP feedback or tool friction?",
-      "context_kinds": ["artifacts", "contract", "policy", "status_items", "evidence"],
+      "context_kinds": [
+        "artifacts",
+        "contract",
+        "policy",
+        "status_items",
+        "evidence"
+      ],
       "expected_refs": [
         "brain/projects/aicos/working/artifact-refs/artifact-write-cookbook-20260428.md",
         "packages/aicos-kernel/contracts/mcp-bridge/local-mcp-bridge-contract.md",
@@ -219,7 +280,12 @@
       "work_type": "orientation",
       "work_lane": "startup",
       "question": "where is the canonical sample project repo URL and branch?",
-      "context_kinds": ["canonical", "current_state", "project_registry", "status_items"],
+      "context_kinds": [
+        "canonical",
+        "current_state",
+        "project_registry",
+        "status_items"
+      ],
       "expected_refs": [
         "brain/projects/sample-project/canonical/project-profile.md",
         "brain/projects/sample-project/working/current-state.md",
@@ -237,7 +303,14 @@
       "work_type": "ops",
       "work_lane": "mcp-connect",
       "question": "how does OpenClaw connect to AICOS MCP?",
-      "context_kinds": ["current_state", "current_direction", "handoff", "task_state", "canonical", "artifacts"],
+      "context_kinds": [
+        "current_state",
+        "current_direction",
+        "handoff",
+        "task_state",
+        "canonical",
+        "artifacts"
+      ],
       "expected_refs": [
         "brain/projects/mjnclaw/working/artifact-refs/mjnclaw-artifact-vm-guide-20260428.md",
         "brain/projects/mjnclaw/working/task-state/setup-aicos-mcp-lan.md",
@@ -255,7 +328,11 @@
       "work_type": "planning",
       "work_lane": "aicos-option-c",
       "question": "what phase should AICOS do next after provider interface sketch?",
-      "context_kinds": ["evidence", "status_items", "current_direction"],
+      "context_kinds": [
+        "evidence",
+        "status_items",
+        "current_direction"
+      ],
       "expected_refs": [
         "brain/projects/aicos/working/status-items/aicos-phase-3-provider-interface-sketch.md",
         "brain/projects/aicos/working/status-items/aicos-option-c-transition-checklist.md",
@@ -275,7 +352,11 @@
       "work_type": "orientation",
       "work_lane": "role-boundary",
       "question": "is A1 a profession or a service role in AICOS?",
-      "context_kinds": ["canonical", "evidence", "policy"],
+      "context_kinds": [
+        "canonical",
+        "evidence",
+        "policy"
+      ],
       "expected_refs": [
         "brain/projects/aicos/evidence/research/aicos-phase-2-actor-model-normalization-20260428.md",
         "brain/projects/aicos/canonical/role-definitions.md"
@@ -292,7 +373,10 @@
       "work_type": "ops",
       "work_lane": "search-debug",
       "question": "why does brain status say PG index stale while search still works?",
-      "context_kinds": ["status_items", "evidence"],
+      "context_kinds": [
+        "status_items",
+        "evidence"
+      ],
       "expected_refs": [
         "brain/projects/aicos/working/status-items/aicos-brain-status-pg-stale-false-signal.md",
         "brain/projects/aicos/working/status-items/aicos-gbrain-full-sync-eisdir-runtime-cache.md"
@@ -309,7 +393,10 @@
       "work_type": "planning",
       "work_lane": "dashboard",
       "question": "what should a future human and AI coworker dashboard show?",
-      "context_kinds": ["evidence", "status_items"],
+      "context_kinds": [
+        "evidence",
+        "status_items"
+      ],
       "expected_refs": [
         "brain/projects/aicos/evidence/research/aicos-phase-6-human-ai-coworker-model-20260428.md",
         "brain/projects/aicos/evidence/research/aicos-phase-7-pm-integration-contract-20260428.md"
@@ -326,7 +413,10 @@
       "work_type": "planning",
       "work_lane": "provider-boundary",
       "question": "what provider interfaces should AICOS define without building a plugin framework?",
-      "context_kinds": ["evidence", "contract"],
+      "context_kinds": [
+        "evidence",
+        "contract"
+      ],
       "expected_refs": [
         "brain/projects/aicos/evidence/research/aicos-phase-3-provider-interface-sketch-20260428.md",
         "brain/projects/aicos/evidence/research/aicos-phase-2-semantic-core-boundary-20260428.md"
@@ -343,7 +433,10 @@
       "work_type": "ops",
       "work_lane": "deployment",
       "question": "which AICOS deployment profile is the current stack?",
-      "context_kinds": ["evidence", "status_items"],
+      "context_kinds": [
+        "evidence",
+        "status_items"
+      ],
       "expected_refs": [
         "brain/projects/aicos/evidence/research/aicos-phase-4-deployment-profiles-20260428.md",
         "brain/projects/aicos/working/status-items/aicos-phase-4-deployment-profiles.md"
@@ -360,7 +453,16 @@
       "work_type": "planning",
       "work_lane": "strategic-review",
       "question": "hãy đóng vai trò CTO, đọc tổng quan dự án, thiết kế kiến trúc và đánh giá AICOS hiện nay",
-      "context_kinds": ["current_state", "current_direction", "handoff", "status_items", "canonical", "policy", "contract", "evidence"],
+      "context_kinds": [
+        "current_state",
+        "current_direction",
+        "handoff",
+        "status_items",
+        "canonical",
+        "policy",
+        "contract",
+        "evidence"
+      ],
       "expected_refs": [
         "brain/projects/aicos/evidence/research/aicos-option-c-architecture-north-star-20260428.md",
         "brain/projects/aicos/evidence/research/aicos-phase-2-semantic-core-boundary-20260428.md",
@@ -379,7 +481,14 @@
       "work_type": "planning",
       "work_lane": "strategic-review",
       "question": "hãy đóng vai trò CEO, đọc tổng quan dự án và đánh giá chiến lược sản phẩm AICOS",
-      "context_kinds": ["current_state", "current_direction", "handoff", "status_items", "canonical", "evidence"],
+      "context_kinds": [
+        "current_state",
+        "current_direction",
+        "handoff",
+        "status_items",
+        "canonical",
+        "evidence"
+      ],
       "expected_refs": [
         "brain/projects/aicos/evidence/research/aicos-problem-framing-and-build-vs-buy-20260428.md",
         "brain/projects/aicos/evidence/research/aicos-market-landscape-and-substrate-comparison-20260428.md",
@@ -398,7 +507,12 @@
       "work_type": "planning",
       "work_lane": "strategic-review",
       "question": "đánh giá build vs buy của AICOS: nên tự xây tiếp hay dùng GBrain, Mem0, Letta, Zep, Graphiti hoặc sản phẩm khác?",
-      "context_kinds": ["evidence", "status_items", "current_direction", "canonical"],
+      "context_kinds": [
+        "evidence",
+        "status_items",
+        "current_direction",
+        "canonical"
+      ],
       "expected_refs": [
         "brain/projects/aicos/evidence/research/aicos-problem-framing-and-build-vs-buy-20260428.md",
         "brain/projects/aicos/evidence/research/aicos-market-landscape-and-substrate-comparison-20260428.md",
@@ -417,7 +531,12 @@
       "work_type": "planning",
       "work_lane": "strategic-review",
       "question": "đóng vai CTO đánh giá AICOS có scalable không, điểm nghẽn kiến trúc và rủi ro lớn nhất là gì?",
-      "context_kinds": ["evidence", "status_items", "contract", "current_direction"],
+      "context_kinds": [
+        "evidence",
+        "status_items",
+        "contract",
+        "current_direction"
+      ],
       "expected_refs": [
         "brain/projects/aicos/evidence/research/aicos-option-c-architecture-north-star-20260428.md",
         "brain/projects/aicos/evidence/research/aicos-phase-2-semantic-core-boundary-20260428.md",
@@ -438,7 +557,11 @@
       "work_type": "planning",
       "work_lane": "strategic-review",
       "question": "hãy phản biện xem AICOS hiện có lệch so với định hướng Option C và human-AI coworker dashboard không?",
-      "context_kinds": ["evidence", "status_items", "current_direction"],
+      "context_kinds": [
+        "evidence",
+        "status_items",
+        "current_direction"
+      ],
       "expected_refs": [
         "brain/projects/aicos/evidence/research/aicos-option-c-architecture-north-star-20260428.md",
         "brain/projects/aicos/evidence/research/aicos-option-c-transition-checklist-20260428.md",
@@ -457,7 +580,11 @@
       "work_type": "ops",
       "work_lane": "search-mode",
       "question": "when should I use direct read tools versus a bounded query in AICOS?",
-      "context_kinds": ["artifacts", "evidence", "contract"],
+      "context_kinds": [
+        "artifacts",
+        "evidence",
+        "contract"
+      ],
       "expected_refs": [
         "brain/projects/aicos/working/artifact-refs/artifact-query-guide-20260428.md",
         "brain/projects/aicos/evidence/research/aicos-phase-5-retrieval-runtime-reduction-20260428.md",
@@ -475,7 +602,11 @@
       "work_type": "ops",
       "work_lane": "search-debug",
       "question": "how do I check whether AICOS search is stale or embeddings are broken?",
-      "context_kinds": ["artifacts", "status_items", "evidence"],
+      "context_kinds": [
+        "artifacts",
+        "status_items",
+        "evidence"
+      ],
       "expected_refs": [
         "brain/projects/aicos/evidence/research/aicos-gbrain-search-patterns-for-a1-eval-20260428.md",
         "brain/projects/aicos/evidence/research/aicos-retrieval-eval-run-20260428.md",
@@ -495,7 +626,12 @@
       "work_type": "ops",
       "work_lane": "search-feedback",
       "question": "what should I do when AICOS search does not return the context I expected?",
-      "context_kinds": ["artifacts", "status_items", "evidence", "contract"],
+      "context_kinds": [
+        "artifacts",
+        "status_items",
+        "evidence",
+        "contract"
+      ],
       "expected_refs": [
         "brain/projects/aicos/working/artifact-refs/artifact-query-guide-20260428.md",
         "brain/projects/aicos/working/artifact-refs/artifact-write-cookbook-20260428.md",
@@ -514,7 +650,12 @@
       "work_type": "research",
       "work_lane": "source-precedence",
       "question": "if AICOS search results conflict, which source should win?",
-      "context_kinds": ["artifacts", "evidence", "canonical", "policy"],
+      "context_kinds": [
+        "artifacts",
+        "evidence",
+        "canonical",
+        "policy"
+      ],
       "expected_refs": [
         "brain/projects/aicos/working/artifact-refs/artifact-query-guide-20260428.md",
         "brain/projects/aicos/evidence/research/aicos-phase-2-semantic-core-boundary-20260428.md",
@@ -532,7 +673,10 @@
       "work_type": "ops",
       "work_lane": "retrieval-eval",
       "question": "why does AICOS need a retrieval eval corpus and runner before changing search?",
-      "context_kinds": ["evidence", "status_items"],
+      "context_kinds": [
+        "evidence",
+        "status_items"
+      ],
       "expected_refs": [
         "brain/projects/aicos/evidence/research/aicos-phase-5-retrieval-runtime-reduction-20260428.md",
         "brain/projects/aicos/evidence/research/aicos-retrieval-baseline-20260428.md",
@@ -540,6 +684,631 @@
       ],
       "expected_answer_shape": "Use top3/top5 expected-ref regression to detect whether search changes help A1 without adding heavy infrastructure.",
       "failure_mode_if_missing": "Search changes become anecdotal and regress old A1 questions."
+    },
+    {
+      "id": "sample-manager-project-progress-next-work",
+      "priority": "high",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "project manager",
+      "work_type": "orientation",
+      "work_lane": "startup-progress-review",
+      "question": "kiểm tra dự án sample project đang làm đến đâu, có việc gì đang làm, ai đang làm, và nên làm gì tiếp?",
+      "context_kinds": [
+        "current_state",
+        "current_direction",
+        "handoff",
+        "status_items",
+        "task_state",
+        "open_items"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/working/current-state.md",
+        "brain/projects/sample-project/working/handoff/current.md",
+        "brain/projects/sample-project/working/open-items.md"
+      ],
+      "expected_answer_shape": "Use sample project current state, current handoff, open items/status/task-state before recommending next work.",
+      "failure_mode_if_missing": "Manager answers from stale sample project repo memory or misses active openai-pipeline/status items."
+    },
+    {
+      "id": "sample-a1-startup-ladder",
+      "priority": "high",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "new project worker",
+      "work_type": "orientation",
+      "work_lane": "startup",
+      "question": "what should a fresh A1 read first when starting the sample project trading project?",
+      "context_kinds": [
+        "current_state",
+        "current_direction",
+        "handoff",
+        "canonical"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/working/context-ladder.md",
+        "brain/projects/sample-project/working/current-state.md",
+        "brain/projects/sample-project/working/current-direction.md"
+      ],
+      "expected_answer_shape": "Start from sample project context ladder/current-state/current-direction, then handoff and selected task packet.",
+      "failure_mode_if_missing": "Fresh worker jumps into sample project source tree or shared-context instead of AICOS context/control plane."
+    },
+    {
+      "id": "sample-authority-split-aicos-vs-repo",
+      "priority": "high",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "developer",
+      "work_type": "orientation",
+      "work_lane": "authority",
+      "question": "for sample project, what is AICOS authority and what remains sample project repo authority?",
+      "context_kinds": [
+        "canonical",
+        "current_state",
+        "handoff",
+        "policy"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/canonical/project-profile.md",
+        "brain/projects/sample-project/working/current-state.md",
+        "brain/projects/sample-project/working/handoff/current.md"
+      ],
+      "expected_answer_shape": "AICOS owns context/control-plane; sample project checkout owns code/runtime/tests/artifacts; shared-context is provenance/reference.",
+      "failure_mode_if_missing": "Agent writes continuity into sample project shared-context or treats AICOS digests as code authority."
+    },
+    {
+      "id": "sample-shared-context-not-default",
+      "priority": "high",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "worker",
+      "work_type": "orientation",
+      "work_lane": "authority",
+      "question": "should a sample project A1 use shared-context as the default continuity lane?",
+      "context_kinds": [
+        "current_state",
+        "handoff",
+        "canonical",
+        "evidence"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/working/current-state.md",
+        "brain/projects/sample-project/working/handoff/current.md",
+        "brain/projects/sample-project/evidence/workstreams/default-sample-workstream-delivery-slice.md"
+      ],
+      "expected_answer_shape": "No. Treat shared-context as reference/history/provenance unless explicitly needed for audit or source verification.",
+      "failure_mode_if_missing": "A1 revives old sample project context workflow and splits continuity away from AICOS."
+    },
+    {
+      "id": "sample-product-purpose-posture",
+      "priority": "high",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "product reviewer",
+      "work_type": "orientation",
+      "work_lane": "product",
+      "question": "what is the purpose and current product posture of Sample Project?",
+      "context_kinds": [
+        "canonical",
+        "evidence"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/canonical/project-brief.md",
+        "brain/projects/sample-project/evidence/source-inventory/sample-workstream-active-context-inventory-20260419.md"
+      ],
+      "expected_answer_shape": "sample project-first trading support for a solo trader, SCTR v3, output-first, descriptor-first, side-aware, no-trade-valid, reliability-capped.",
+      "failure_mode_if_missing": "Reviewer mistakes the product for auto-trading, demo analytics, or multi-asset platform."
+    },
+    {
+      "id": "sample-non-goals",
+      "priority": "medium",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "product reviewer",
+      "work_type": "planning",
+      "work_lane": "scope-control",
+      "question": "what should Sample Project not become in the current baseline?",
+      "context_kinds": [
+        "canonical"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/canonical/project-brief.md",
+        "brain/projects/sample-project/canonical/architecture-baseline.md",
+        "brain/projects/sample-project/canonical/source-and-data-scope.md"
+      ],
+      "expected_answer_shape": "No auto-trading bot, no hidden verdict engine, no broad multi-asset/source expansion without trader-facing value.",
+      "failure_mode_if_missing": "Agent expands scope or adds hidden scoring because search missed non-goals."
+    },
+    {
+      "id": "sample-architecture-pipeline-boundaries",
+      "priority": "high",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "architect",
+      "work_type": "orientation",
+      "work_lane": "architecture-overview",
+      "question": "explain the sample project architecture pipeline and module boundaries.",
+      "context_kinds": [
+        "canonical",
+        "evidence"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/canonical/architecture-baseline.md",
+        "brain/projects/sample-project/evidence/source-inventory/sample-workstream-active-context-inventory-20260419.md"
+      ],
+      "expected_answer_shape": "Acquisition, normalization, enrichment, package assembly, validation, handoff; with deterministic package construction separate from model reasoning.",
+      "failure_mode_if_missing": "Architect looks at random code files and misses output-first boundary rules."
+    },
+    {
+      "id": "sample-sample-workstream-delivery-surface",
+      "priority": "high",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "delivery worker",
+      "work_type": "orientation",
+      "work_lane": "sample-workstream",
+      "question": "what is the sample_workstream delivery surface and what commands build or refresh it?",
+      "context_kinds": [
+        "canonical",
+        "evidence"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/evidence/delivery-surfaces/sample-workstream-surface.md",
+        "brain/projects/sample-project/canonical/delivery-baseline.md"
+      ],
+      "expected_answer_shape": "Return sample_workstream purpose, build/refresh/API-only commands, live input path, rolling bundle, and output contract.",
+      "failure_mode_if_missing": "Worker cannot run the correct sample project refresh path or confuses tactical and morning surfaces."
+    },
+    {
+      "id": "sample-package-top-level-sections",
+      "priority": "medium",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "schema reviewer",
+      "work_type": "review",
+      "work_lane": "sample-workstream",
+      "question": "what are the canonical top-level sections of the sample project sample_workstream package?",
+      "context_kinds": [
+        "canonical",
+        "evidence"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/canonical/delivery-baseline.md",
+        "brain/projects/sample-project/evidence/delivery-surfaces/sample-workstream-surface.md",
+        "brain/projects/sample-project/canonical/source-and-data-scope.md"
+      ],
+      "expected_answer_shape": "package_meta, requested_context, capture_status, data_reliability, market_state, shared_context, side_contexts, output_hints.",
+      "failure_mode_if_missing": "Schema changes add or remove sections without noticing current package contract."
+    },
+    {
+      "id": "sample-default-custom-gpt-view",
+      "priority": "high",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "delivery worker",
+      "work_type": "orientation",
+      "work_lane": "delivery",
+      "question": "what is the default sample project Custom GPT view and live input path?",
+      "context_kinds": [
+        "canonical",
+        "evidence",
+        "current_state"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/canonical/delivery-baseline.md",
+        "brain/projects/sample-project/evidence/delivery-surfaces/sample-workstream-surface.md",
+        "brain/projects/sample-project/working/current-state.md"
+      ],
+      "expected_answer_shape": "Default view primary_2d_8h_1h and live morning input outputs/custom-gpt-mvp/input-json/sample_workstream.live-example.json.",
+      "failure_mode_if_missing": "Agent tests or packages the wrong delivery view."
+    },
+    {
+      "id": "sample-source-data-roles",
+      "priority": "high",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "data reviewer",
+      "work_type": "orientation",
+      "work_lane": "data-scope",
+      "question": "which data sources does sample project use and what role does each source play?",
+      "context_kinds": [
+        "canonical",
+        "evidence"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/canonical/source-and-data-scope.md",
+        "brain/projects/sample-project/evidence/source-inventory/sample-workstream-active-context-inventory-20260419.md"
+      ],
+      "expected_answer_shape": "Binance primary, Coinbase secondary confirmation, CoinGlass contextual, TradingView browser calendar timing context.",
+      "failure_mode_if_missing": "Agent treats CoinGlass as primary truth or ignores browser/calendar limitations."
+    },
+    {
+      "id": "sample-runtime-package-policy",
+      "priority": "medium",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "package reviewer",
+      "work_type": "review",
+      "work_lane": "data-scope",
+      "question": "what should sample project runtime packages include or avoid?",
+      "context_kinds": [
+        "canonical",
+        "evidence"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/canonical/source-and-data-scope.md",
+        "brain/projects/sample-project/canonical/architecture-baseline.md"
+      ],
+      "expected_answer_shape": "Compact, reasoning-oriented, reliability-aware, side-aware, task-mode-aware; not raw vendor mirrors, hidden rule engines, or fabricated certainty.",
+      "failure_mode_if_missing": "Package work bloats outputs or encodes final verdicts in deterministic code."
+    },
+    {
+      "id": "sample-browser-cdp-risk",
+      "priority": "high",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "ops worker",
+      "work_type": "ops",
+      "work_lane": "browser-data",
+      "question": "what sample project work depends on local Chrome/CDP/session state and how should unavailable lanes degrade?",
+      "context_kinds": [
+        "canonical",
+        "active_risks",
+        "handoff",
+        "status_items"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/canonical/source-and-data-scope.md",
+        "brain/projects/sample-project/working/active-risks.md",
+        "brain/projects/sample-project/working/handoff/current.md"
+      ],
+      "expected_answer_shape": "Browser-backed CoinGlass/TradingView depends on local Chrome/CDP/session/secrets; packages must explicitly degrade when unavailable.",
+      "failure_mode_if_missing": "Worker claims full browser data readiness without validating local runtime."
+    },
+    {
+      "id": "sample-macro-calendar-gap",
+      "priority": "high",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "data-quality reviewer",
+      "work_type": "review",
+      "work_lane": "macro-calendar",
+      "question": "what is the current macro-calendar timing gap in sample project?",
+      "context_kinds": [
+        "current_state",
+        "active_risks",
+        "open_items",
+        "open_questions",
+        "handoff"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/working/current-state.md",
+        "brain/projects/sample-project/working/active-risks.md",
+        "brain/projects/sample-project/working/open-items.md"
+      ],
+      "expected_answer_shape": "TradingView calendar artifact may exist while generated timing fields still report no usable macro events; track as active data-quality gap.",
+      "failure_mode_if_missing": "Agent marks macro timing ready because a browser artifact exists."
+    },
+    {
+      "id": "sample-fresh-checkout-setup-checkpoints",
+      "priority": "high",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "setup worker",
+      "work_type": "ops",
+      "work_lane": "bootstrap",
+      "question": "where should a fresh sample project checkout worker look before running bootstrap commands?",
+      "context_kinds": [
+        "current_direction",
+        "handoff",
+        "open_items",
+        "evidence"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/working/current-direction.md",
+        "brain/projects/sample-project/working/handoff/current.md",
+        "brain/projects/sample-project/working/open-items.md",
+        "brain/projects/sample-project/evidence/import-kit/bootstrap-output-checklist.md",
+        "brain/projects/sample-project/evidence/checkpoints/20260420t050142z-7270160e56.md",
+        "brain/projects/sample-project/evidence/checkpoints/20260420t050150z-09c29d3afa.md",
+        "brain/projects/sample-project/evidence/checkpoints/20260420t050214z-39170e2634.md"
+      ],
+      "expected_answer_shape": "Read AICOS setup checkpoints from 2026-04-20 before bootstrapping, then verify against sample project repo runtime authority.",
+      "failure_mode_if_missing": "Fresh worker repeats setup debugging or misses recorded Chrome/API readiness criteria."
+    },
+    {
+      "id": "sample-portable-source-metadata",
+      "priority": "medium",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "setup worker",
+      "work_type": "ops",
+      "work_lane": "portable-metadata",
+      "question": "what is the portable source metadata rule for sample project project startup?",
+      "context_kinds": [
+        "canonical",
+        "status_items",
+        "project_registry"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/working/status-items/sample-portable-source-metadata.md",
+        "brain/projects/sample-project/canonical/project-profile.md",
+        "brain/shared/project-registry.md"
+      ],
+      "expected_answer_shape": "Use canonical repo URL/default branch as identity; local checkout paths are runtime hints or provenance only.",
+      "failure_mode_if_missing": "Agent bakes machine-specific /Users paths into portable startup docs."
+    },
+    {
+      "id": "sample-path-hygiene-tech-debt",
+      "priority": "medium",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "reviewer",
+      "work_type": "review",
+      "work_lane": "portable-validation",
+      "question": "what sample project portable bundle path hygiene tech debt remains open?",
+      "context_kinds": [
+        "status_items",
+        "open_items"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/working/status-items/sample-main-portable-docs-path-hygiene-20260422.md"
+      ],
+      "expected_answer_shape": "Runtime/API-only portability passes, but legacy shared-context/provenance docs still contain old absolute path examples.",
+      "failure_mode_if_missing": "Reviewer claims the bundle is fully path-clean because runtime smoke passed."
+    },
+    {
+      "id": "sample-openai-pipeline-current-status",
+      "priority": "high",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "implementation worker",
+      "work_type": "orientation",
+      "work_lane": "openai-pipeline",
+      "question": "what is the current status of the sample project openai-pipeline workstream?",
+      "context_kinds": [
+        "handoff",
+        "task_state",
+        "status_items"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/working/handoff/current.md",
+        "brain/projects/sample-project/working/task-state/review-openai-pipeline-signals-prompts.md",
+        "brain/projects/sample-project/working/status-items/codex-fix-openai-pipeline-signals-prompts.md"
+      ],
+      "expected_answer_shape": "Openai-pipeline scaffold exists; A1 review completed; Codex action remains open to fix signals/prompts issues.",
+      "failure_mode_if_missing": "Worker starts from old Custom GPT baseline and misses active OpenAI pipeline fixes."
+    },
+    {
+      "id": "sample-openai-pipeline-codex-fixes",
+      "priority": "high",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "implementation worker",
+      "work_type": "review",
+      "work_lane": "openai-pipeline",
+      "question": "what fixes did Antigravity ask Codex to make for sample project openai-pipeline signals and prompts?",
+      "context_kinds": [
+        "status_items",
+        "task_state"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/working/status-items/codex-fix-openai-pipeline-signals-prompts.md",
+        "brain/projects/sample-project/working/task-state/review-openai-pipeline-signals-prompts.md"
+      ],
+      "expected_answer_shape": "Change CoinGlass interval to 1H, unify CVD/Taker exchange lists, include new signals in Telegram format, reduce scenario burden.",
+      "failure_mode_if_missing": "Codex implements unrelated pipeline work and ignores A1 review findings."
+    },
+    {
+      "id": "sample-openai-pipeline-scaffold-details",
+      "priority": "medium",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "implementation worker",
+      "work_type": "orientation",
+      "work_lane": "openai-pipeline",
+      "question": "what was scaffolded for the sample project openai-pipeline and what does the human need to configure?",
+      "context_kinds": [
+        "handoff",
+        "evidence"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/working/handoff/current.md",
+        "brain/projects/sample-project/evidence/checkpoints/20260420t162038z-5e953f5e62.md",
+        "brain/projects/sample-project/evidence/checkpoints/20260422t075300z-e632b9f4df.md"
+      ],
+      "expected_answer_shape": "Scaffold on workstream/openai-pipeline with SQLite, collectors, OpenAI client, Telegram/Telegra.ph; human must fill OPENAI_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID and run once.",
+      "failure_mode_if_missing": "Worker cannot continue the pipeline branch or asks for already-known env setup."
+    },
+    {
+      "id": "sample-first-post-promotion-task",
+      "priority": "medium",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "project manager",
+      "work_type": "planning",
+      "work_lane": "task-selection",
+      "question": "what is the first real post-promotion sample project A1 task question still open?",
+      "context_kinds": [
+        "open_questions",
+        "open_items",
+        "handoff"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/working/open-questions.md",
+        "brain/projects/sample-project/working/open-items.md",
+        "brain/projects/sample-project/working/handoff/current.md"
+      ],
+      "expected_answer_shape": "Human must choose the first real sample project work item/task packet; retired import-validation packets should not be reused.",
+      "failure_mode_if_missing": "Manager assigns retired validation packets or fails to create a real task packet."
+    },
+    {
+      "id": "sample-retired-import-validation-packets",
+      "priority": "medium",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "project manager",
+      "work_type": "ops",
+      "work_lane": "task-selection",
+      "question": "which sample project packets are retired and should not be reused as active work?",
+      "context_kinds": [
+        "handoff",
+        "active_risks",
+        "task_state"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/working/handoff/current.md",
+        "brain/projects/sample-project/working/active-risks.md",
+        "brain/projects/sample-project/working/task-state/validate-sample-startup-context.md",
+        "brain/projects/sample-project/working/task-state/review-sample-workstream-import-slice.md"
+      ],
+      "expected_answer_shape": "review-sample-workstream-import-slice and validate-sample-startup-context are retired/basic-test complete.",
+      "failure_mode_if_missing": "A1 loops on old import-validation tasks."
+    },
+    {
+      "id": "sample-source-inventory-import-boundary",
+      "priority": "medium",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "context curator",
+      "work_type": "planning",
+      "work_lane": "source-inventory",
+      "question": "what did the sample project sample_workstream source inventory include and exclude?",
+      "context_kinds": [
+        "evidence",
+        "canonical"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/evidence/source-inventory/sample-workstream-active-context-inventory-20260419.md",
+        "brain/projects/sample-project/evidence/source-inventory/import-plan.md"
+      ],
+      "expected_answer_shape": "Include active startup/product/runtime/delivery context and narrow entrypoints; exclude archives, generated bulk, full code mirror, and non-default variants.",
+      "failure_mode_if_missing": "Curator mirrors too much sample project source into AICOS or misses essential sample_workstream routing context."
+    },
+    {
+      "id": "sample-operator-test-smoke-commands",
+      "priority": "medium",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "qa worker",
+      "work_type": "ops",
+      "work_lane": "testing",
+      "question": "what test or smoke commands should a sample project worker know for the active MVP baseline?",
+      "context_kinds": [
+        "canonical",
+        "evidence"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/canonical/delivery-baseline.md",
+        "brain/projects/sample-project/evidence/delivery-surfaces/sample-workstream-surface.md",
+        "brain/projects/sample-project/evidence/source-inventory/sample-workstream-active-context-inventory-20260419.md"
+      ],
+      "expected_answer_shape": "Use .venv/bin/pytest -q, scripts/smoke_mvp.sh, setup_portable_env --verify, refresh commands depending on browser/API mode.",
+      "failure_mode_if_missing": "Worker changes sample project behavior without running appropriate smoke/test commands."
+    },
+    {
+      "id": "sample-mcp-write-protocol-identity",
+      "priority": "high",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "external work actor",
+      "work_type": "ops",
+      "work_lane": "mcp-write",
+      "question": "how should a sample project A1 fill MCP write identity fields and avoid actor mistakes?",
+      "context_kinds": [
+        "handoff",
+        "policy",
+        "contract"
+      ],
+      "expected_refs": [
+        "brain/projects/sample-project/working/handoff/current.md",
+        "packages/aicos-kernel/contracts/mcp-bridge/local-mcp-bridge-contract.md"
+      ],
+      "expected_answer_shape": "Use actor_role A1, agent_family as codex/claude-code/gemini-antigravity/openclaw, dedicated work_type/work_lane/etc fields; do not encode them into work_context.",
+      "failure_mode_if_missing": "Agent sets actor to Antigravity or agent_family to A1 and hits unsupported_actor/identity bugs."
+    },
+    {
+      "id": "aicos-field-open-search-status-items",
+      "priority": "high",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "project manager",
+      "work_type": "planning",
+      "work_lane": "retrieval-eval",
+      "question": "which AICOS search or retrieval status items are still open, excluding resolved or closed items?",
+      "context_kinds": [
+        "status_items"
+      ],
+      "expected_refs": [
+        "brain/projects/aicos/working/status-items/aicos-gbrain-inspired-search-checklist-20260428.md",
+        "brain/projects/aicos/working/status-items/aicos-phase-5-retrieval-runtime-reduction.md",
+        "brain/projects/aicos/working/status-items/aicos-search-eval-two-project-regression-gate-20260428.md",
+        "brain/projects/aicos/working/status-items/aicos-search-focus-a1-context-retrieval.md",
+        "brain/projects/aicos/working/status-items/aicos-retrieval-direct-read-nudges-human-manager-startup-20260428.md",
+        "brain/projects/aicos/working/status-items/aicos-strategic-review-search-learning-loop-20260428.md"
+      ],
+      "expected_answer_shape": "Prefer current open search/retrieval control items and avoid presenting resolved baseline items as still active.",
+      "failure_mode_if_missing": "Resolved search baseline items pollute the active work answer."
+    },
+    {
+      "id": "aicos-field-active-work-lane-retrieval-eval",
+      "priority": "high",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "retrieval maintainer",
+      "work_type": "ops",
+      "work_lane": "retrieval-eval",
+      "question": "what open AICOS items are in the retrieval-eval work lane?",
+      "context_kinds": [
+        "status_items"
+      ],
+      "expected_refs": [
+        "brain/projects/aicos/working/status-items/aicos-strategic-review-search-learning-loop-20260428.md",
+        "brain/projects/aicos/working/status-items/aicos-retrieval-direct-read-nudges-human-manager-startup-20260428.md",
+        "brain/projects/aicos/working/status-items/aicos-retrieval-eval-expanded-a1-manager-corpus-20260428.md"
+      ],
+      "expected_answer_shape": "Return retrieval-eval lane items around strategic review, direct-read nudges, and expanded eval corpus rather than unrelated open items.",
+      "failure_mode_if_missing": "Work-lane metadata is indexed but not useful for narrowing active retrieval work."
+    },
+    {
+      "id": "aicos-field-agent-instance-ownership-p1-p2-p3",
+      "priority": "medium",
+      "scope": "projects/aicos",
+      "actor_role": "A2-Core-C",
+      "functional_role": "maintainer",
+      "work_type": "review",
+      "work_lane": "option-c-p1-p2-p3",
+      "question": "which AICOS status items were updated by agent_instance_id codex-thread-2026-04-28-p1-p2-p3?",
+      "context_kinds": [
+        "status_items"
+      ],
+      "expected_refs": [
+        "brain/projects/aicos/working/status-items/aicos-gbrain-inspired-search-checklist-20260428.md",
+        "brain/projects/aicos/working/status-items/aicos-module-inventory-provider-boundary-20260428.md"
+      ],
+      "expected_answer_shape": "Use indexed agent_instance_id metadata to surface the P1/P2/P3 status items touched by that agent instance.",
+      "failure_mode_if_missing": "Ownership/audit metadata exists but cannot help agents continue or review another agent's work."
+    },
+    {
+      "id": "aicos-field-current-work-suppresses-resolved-baselines",
+      "priority": "high",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "project manager",
+      "work_type": "planning",
+      "work_lane": "next-work",
+      "question": "what current AICOS retrieval work remains after the resolved baseline eval items are done?",
+      "context_kinds": [
+        "status_items",
+        "evidence"
+      ],
+      "expected_refs": [
+        "brain/projects/aicos/working/status-items/aicos-phase-5-retrieval-runtime-reduction.md",
+        "brain/projects/aicos/working/status-items/aicos-gbrain-inspired-search-checklist-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-gbrain-inspired-search-checklist-20260428.md"
+      ],
+      "expected_answer_shape": "Point to remaining retrieval runtime/search checklist work, not the already-resolved initial eval baseline.",
+      "failure_mode_if_missing": "A1 treats completed baseline eval work as the current next task."
     }
   ]
 }

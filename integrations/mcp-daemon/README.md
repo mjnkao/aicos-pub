@@ -254,6 +254,25 @@ AICOS currently keeps embedding broad, but with lightweight cost guardrails:
 - `AICOS_DAEMON_TOKEN` remains the primary token
 - `AICOS_DAEMON_EXTRA_TOKENS` can define labeled extra tokens as
   `label:token,label2:token2`
+- prefer the CLI helper over editing `.runtime-home/aicos-daemon.env` by hand:
+
+```bash
+# External A1/client token, denied protected projects/aicos writes by default.
+./aicos mcp token create antigravity-2 --assigned-to antigravity-session-2
+
+# AICOS maintainer access token. This is an access label, not agent_family.
+./aicos mcp token create a2-core-c-2 --internal --assigned-to "AICOS maintainer"
+
+# Show labels and rights; omit --show-tokens when sharing output.
+./aicos mcp token list
+```
+
+Restart the daemon after creating or replacing tokens:
+
+```bash
+launchctl kickstart -k gui/$(id -u)/ai.aicos.mcp-daemon
+```
+
 - daemon authorizes by token label as well as token validity:
   - authenticated tokens can read by default
   - external/A1 tokens cannot write protected service scopes such as

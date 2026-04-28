@@ -554,6 +554,23 @@ per-token read/write scope grants:
 AICOS_DAEMON_TOKEN_SCOPE_POLICY='{"antigravity":{"read":["projects/sample-project"],"write":["projects/sample-project"]},"a2-core-c":{"read":["projects/*"],"write":["projects/*"]}}'
 ```
 
+Use the token helper for new agents instead of editing env and registry files
+by hand:
+
+```bash
+# New external A1/client token.
+./aicos mcp token create <label> --assigned-to "<agent or machine>"
+
+# New AICOS maintainer access token.
+./aicos mcp token create <access-label> --internal --assigned-to "AICOS maintainer"
+
+# Review labels and rights. Use --show-tokens only when you need the secret.
+./aicos mcp token list
+
+# Activate changes.
+launchctl kickstart -k gui/$(id -u)/ai.aicos.mcp-daemon
+```
+
 Portable LAN helper:
 
 ```bash

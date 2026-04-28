@@ -53,6 +53,49 @@ Weakness:
 
 Create a small corpus before changing ranking heavily.
 
+### Current Coverage Caveat
+
+The current 54-item corpus is now a two-project regression gate for AICOS
+operating search plus a larger coding-heavy managed project. It is more useful
+than the first 29-item AICOS-heavy corpus, but it is still not a broad
+company-wide benchmark.
+
+Current distribution:
+
+- `projects/aicos`: 25 items
+- `projects/sample-project`: 28 items
+- `projects/mjnclaw`: 1 item
+
+Latest expanded run on 2026-04-28:
+
+- all items: `top3 53/54`, `top5 54/54`, `errors 0`
+- `projects/aicos`: `top3 25/25`, `top5 25/25`, `errors 0`
+- `projects/sample-project`: `top3 27/28`, `top5 28/28`,
+  `errors 0`
+- `projects/mjnclaw`: `top3 1/1`, `top5 1/1`, `errors 0`
+
+Therefore a result such as `top5 54/54, errors 0` means:
+
+- AICOS self-project retrieval and current A1/A2 operating questions are in
+  good shape;
+- sample project managed-project retrieval has a meaningful coding-heavy regression slice;
+- there is still only smoke coverage for mjnclaw;
+- it does **not** prove retrieval quality across many company/project shapes
+  yet.
+
+From this point, search or A1 retrieval changes should be checked against both
+`projects/aicos` and `projects/sample-project`. Aggregate score alone is
+not enough; the runner must show per-scope results so sample project regressions are not
+hidden by AICOS successes.
+
+Before using retrieval eval as a company-wide quality claim, add more cases
+from at least:
+
+- one coding-heavy project;
+- one non-code/research/content project;
+- one project with multiple active agents/lanes;
+- one project with sparse/immature AICOS context.
+
 ### Corpus Shape
 
 Each eval item should include:

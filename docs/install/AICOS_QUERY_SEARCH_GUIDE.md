@@ -319,3 +319,7 @@ The answer should separate:
 4. Debugging ranking before checking freshness/coverage
 5. Querying without `context_kinds` when the question is clearly about policy,
    contract, or handoff only
+6. Treating derived projections as truth. PostgreSQL index metadata (and any
+   future link-graph edges) are derived views. They are helpful for retrieval
+   and navigation, but the durable source of truth remains the underlying
+   markdown + MCP semantic writes.

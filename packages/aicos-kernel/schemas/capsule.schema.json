@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aicos://schemas/capsule.schema.json",
+  "title": "AICOS Capsule",
+  "type": "object",
+  "required": ["schema_version", "kind", "capsule_type", "identifier", "generated_at", "items"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "kind": { "const": "aicos.capsule" },
+    "capsule_type": { "type": "string" },
+    "identifier": { "type": "string" },
+    "generated_at": { "type": "string" },
+    "source_root": { "type": "string" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "title", "excerpt"],
+        "properties": {
+          "source": { "type": "string" },
+          "title": { "type": "string" },
+          "excerpt": { "type": "string" }
+        }
+      }
+    },
+    "warnings": { "type": "array", "items": { "type": "string" } }
+  }
+}
+

@@ -1,0 +1,545 @@
+{
+  "schema_version": "0.2",
+  "status": "expanded A1 manager retrieval eval corpus",
+  "date": "2026-04-28",
+  "scope": "projects/aicos",
+  "purpose": "Measure whether AICOS retrieval helps human managers and A1/A2 agents find the right context with low over-read.",
+  "guardrails": [
+    "Use HTTP MCP query behavior as the regression target.",
+    "Keep questions small-team friendly and avoid requiring graph engine, LLM reranker, or broad repo ingestion.",
+    "Expected refs are source pointers, not full-answer truth by themselves."
+  ],
+  "items": [
+    {
+      "id": "a1-aicos-start-next-work",
+      "priority": "high",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "project worker",
+      "work_type": "orientation",
+      "work_lane": "intake",
+      "question": "what should a new A1 read before starting work on AICOS?",
+      "context_kinds": ["current_state", "current_direction", "handoff", "canonical", "policy"],
+      "expected_refs": [
+        "brain/projects/aicos/working/current-state.md",
+        "brain/projects/aicos/working/current-direction.md",
+        "brain/projects/aicos/working/context-ladder.md"
+      ],
+      "expected_answer_shape": "Point the agent to startup/current-state/current-direction/context-ladder without loading broad design docs.",
+      "failure_mode_if_missing": "A1 over-reads architecture history or misses the current operating surface."
+    },
+    {
+      "id": "manager-a1-use-mcp-read-write",
+      "priority": "high",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "manager-facing worker",
+      "work_type": "orientation",
+      "work_lane": "mcp-use",
+      "question": "how should an A1 use AICOS MCP to read and write context?",
+      "context_kinds": ["artifacts", "contract", "policy", "status_items", "evidence"],
+      "expected_refs": [
+        "brain/projects/aicos/working/artifact-refs/artifact-write-cookbook-20260428.md",
+        "brain/projects/aicos/working/artifact-refs/artifact-query-guide-20260428.md",
+        "packages/aicos-kernel/contracts/mcp-bridge/local-mcp-bridge-contract.md"
+      ],
+      "expected_answer_shape": "Explain MCP-first direct reads/query, semantic writes, identity fields, and no direct markdown writes for A1.",
+      "failure_mode_if_missing": "A1 writes raw files or cannot discover the right read/write tools."
+    },
+    {
+      "id": "manager-list-projects",
+      "priority": "high",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "manager-facing worker",
+      "work_type": "orientation",
+      "work_lane": "project-discovery",
+      "question": "what projects exist in AICOS and how do I discover them?",
+      "context_kinds": ["project_registry", "current_state", "canonical"],
+      "expected_refs": [
+        "brain/shared/project-registry.md",
+        "brain/projects/aicos/working/current-state.md"
+      ],
+      "expected_answer_shape": "Point to project registry/direct project-registry read before guessing local folders.",
+      "failure_mode_if_missing": "A1 treats local directories as the project registry and misses portable project metadata."
+    },
+    {
+      "id": "manager-role-manager-reads",
+      "priority": "high",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "project manager",
+      "work_type": "orientation",
+      "work_lane": "role-aware-reading",
+      "question": "in an AICOS project what should a manager read before assigning or reviewing work?",
+      "context_kinds": ["current_state", "current_direction", "handoff", "status_items", "policy"],
+      "expected_refs": [
+        "brain/projects/aicos/working/context-ladder.md",
+        "brain/projects/aicos/working/current-state.md",
+        "brain/projects/aicos/working/handoff/current.md"
+      ],
+      "expected_answer_shape": "Manager should read current state/direction, handoff/current, active status/open items, and role boundaries.",
+      "failure_mode_if_missing": "Manager asks workers without knowing current lanes, blockers, or authority boundaries."
+    },
+    {
+      "id": "manager-role-worker-reads",
+      "priority": "high",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "implementation worker",
+      "work_type": "orientation",
+      "work_lane": "role-aware-reading",
+      "question": "in the sample project project what should a worker read before continuing implementation?",
+      "context_kinds": ["current_state", "current_direction", "handoff", "task_state", "canonical"],
+      "expected_refs": [
+        "brain/projects/sample-project/working/context-ladder.md",
+        "brain/projects/sample-project/working/current-state.md",
+        "brain/projects/sample-project/working/handoff/current.md"
+      ],
+      "expected_answer_shape": "Worker should read project context ladder, current state, current handoff, and relevant task-state before raw repo work.",
+      "failure_mode_if_missing": "Worker repeats old work or misses the portable repo/source metadata."
+    },
+    {
+      "id": "manager-architecture-overview",
+      "priority": "high",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "architecture reviewer",
+      "work_type": "planning",
+      "work_lane": "architecture-overview",
+      "question": "what should I read to understand the current AICOS architecture direction?",
+      "context_kinds": ["evidence", "current_direction", "status_items"],
+      "expected_refs": [
+        "brain/projects/aicos/evidence/research/aicos-option-c-architecture-north-star-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-phase-2-semantic-core-boundary-20260428.md",
+        "brain/projects/aicos/working/current-direction.md"
+      ],
+      "expected_answer_shape": "Prefer north-star/current direction and semantic core boundary, not old broad design history.",
+      "failure_mode_if_missing": "Reviewer uses stale architecture docs or treats GBrain substrate as AICOS product identity."
+    },
+    {
+      "id": "manager-next-work",
+      "priority": "high",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "project manager",
+      "work_type": "planning",
+      "work_lane": "next-work",
+      "question": "what should be done next in AICOS after phase 0.5 and search stabilization?",
+      "context_kinds": ["status_items", "evidence", "current_direction"],
+      "expected_refs": [
+        "brain/projects/aicos/working/status-items/aicos-search-focus-a1-context-retrieval.md",
+        "brain/projects/aicos/working/status-items/aicos-phase-5-retrieval-runtime-reduction.md",
+        "brain/projects/aicos/working/status-items/aicos-search-eval-corpus-baseline-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-option-c-transition-checklist-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-phase-5-retrieval-runtime-reduction-20260428.md"
+      ],
+      "expected_answer_shape": "Identify retrieval/search eval as current focus, then continue phase checklist without heavy substrate changes.",
+      "failure_mode_if_missing": "AICOS jumps to dashboard/provider work before A1 retrieval quality is usable."
+    },
+    {
+      "id": "human-manager-startup-progress-agents-next",
+      "priority": "high",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "manager-facing worker",
+      "work_type": "orientation",
+      "work_lane": "startup-progress-review",
+      "question": "kiểm tra xem dự án đang làm đến đâu rồi, có những việc gì đang làm, ai đang làm, chúng ta nên làm việc gì tiếp?",
+      "context_kinds": ["current_state", "current_direction", "handoff", "status_items", "task_state", "policy"],
+      "expected_refs": [
+        "brain/projects/aicos/working/handoff/current.md",
+        "brain/projects/aicos/working/current-state.md",
+        "brain/projects/aicos/working/status-items/aicos-search-focus-a1-context-retrieval.md",
+        "brain/shared/policies/agent-coordination-policy.md"
+      ],
+      "expected_answer_shape": "A1 should first use startup/handoff/status/health direct reads, then query only for missing details; answer with current progress, active lanes/agents, risks, and next recommended work.",
+      "failure_mode_if_missing": "A1 answers from stale memory or broad search instead of current continuity/status surfaces."
+    },
+    {
+      "id": "manager-agent-activity-overlap",
+      "priority": "high",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "project manager",
+      "work_type": "ops",
+      "work_lane": "coordination",
+      "question": "which agents are doing what and how do I avoid overlapping with them?",
+      "context_kinds": ["handoff", "status_items", "task_state", "policy"],
+      "expected_refs": [
+        "brain/projects/aicos/working/handoff/current.md",
+        "brain/shared/policies/agent-coordination-policy.md",
+        "brain/projects/aicos/working/status-items/aicos-phase-0-5-smoke-codex.md"
+      ],
+      "expected_answer_shape": "Use handoff/current, status/task-state, and coordination policy to find active lanes and takeover boundaries.",
+      "failure_mode_if_missing": "Multiple agents edit the same lane or repeat the same setup/debug task."
+    },
+    {
+      "id": "manager-takeover-without-stepping",
+      "priority": "high",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "takeover worker",
+      "work_type": "ops",
+      "work_lane": "handoff",
+      "question": "how do I continue sample project project work without stepping on another agent?",
+      "context_kinds": ["handoff", "task_state", "status_items", "policy"],
+      "expected_refs": [
+        "brain/projects/sample-project/working/handoff/current.md",
+        "brain/shared/policies/agent-coordination-policy.md",
+        "brain/projects/sample-project/working/task-state/validate-sample-startup-context.md"
+      ],
+      "expected_answer_shape": "Check handoff/current, task-state, active status items, and only then touch the work repo/artifacts.",
+      "failure_mode_if_missing": "Takeover agent misses current ownership and duplicates validation work."
+    },
+    {
+      "id": "a1-aicos-report-feedback",
+      "priority": "high",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "external work actor",
+      "work_type": "ops",
+      "work_lane": "feedback",
+      "question": "how do I report AICOS MCP feedback or tool friction?",
+      "context_kinds": ["artifacts", "contract", "policy", "status_items", "evidence"],
+      "expected_refs": [
+        "brain/projects/aicos/working/artifact-refs/artifact-write-cookbook-20260428.md",
+        "packages/aicos-kernel/contracts/mcp-bridge/local-mcp-bridge-contract.md",
+        "brain/projects/aicos/evidence/research/aicos-phase-0-5-learning-loop-check-20260428.md"
+      ],
+      "expected_answer_shape": "Mention aicos_record_feedback, feedback_type/no_issue, identity fields, and feedback closure.",
+      "failure_mode_if_missing": "Agents do not record friction, so AICOS loses learning-loop signals."
+    },
+    {
+      "id": "a1-sample-canonical-repo",
+      "priority": "high",
+      "scope": "projects/sample-project",
+      "actor_role": "A1",
+      "functional_role": "developer",
+      "work_type": "orientation",
+      "work_lane": "startup",
+      "question": "where is the canonical sample project repo URL and branch?",
+      "context_kinds": ["canonical", "current_state", "project_registry", "status_items"],
+      "expected_refs": [
+        "brain/projects/sample-project/canonical/project-profile.md",
+        "brain/projects/sample-project/working/current-state.md",
+        "brain/shared/project-registry.md"
+      ],
+      "expected_answer_shape": "Return git@github.com:mjnkao/sample project-Trading-Framework.git and branch main.",
+      "failure_mode_if_missing": "A1 uses machine-local paths or stale checkout assumptions."
+    },
+    {
+      "id": "a1-mjnclaw-connect-openclaw",
+      "priority": "high",
+      "scope": "projects/mjnclaw",
+      "actor_role": "A1",
+      "functional_role": "operator",
+      "work_type": "ops",
+      "work_lane": "mcp-connect",
+      "question": "how does OpenClaw connect to AICOS MCP?",
+      "context_kinds": ["current_state", "current_direction", "handoff", "task_state", "canonical", "artifacts"],
+      "expected_refs": [
+        "brain/projects/mjnclaw/working/artifact-refs/mjnclaw-artifact-vm-guide-20260428.md",
+        "brain/projects/mjnclaw/working/task-state/setup-aicos-mcp-lan.md",
+        "brain/projects/mjnclaw/working/current-state.md"
+      ],
+      "expected_answer_shape": "Point to OpenClaw VM/LAN MCP setup and current connection state.",
+      "failure_mode_if_missing": "OpenClaw agents repeat setup debugging or use stale token/transport assumptions."
+    },
+    {
+      "id": "a2-aicos-next-phase",
+      "priority": "high",
+      "scope": "projects/aicos",
+      "actor_role": "A2-Core-C",
+      "functional_role": "architect",
+      "work_type": "planning",
+      "work_lane": "aicos-option-c",
+      "question": "what phase should AICOS do next after provider interface sketch?",
+      "context_kinds": ["evidence", "status_items", "current_direction"],
+      "expected_refs": [
+        "brain/projects/aicos/working/status-items/aicos-phase-3-provider-interface-sketch.md",
+        "brain/projects/aicos/working/status-items/aicos-option-c-transition-checklist.md",
+        "brain/projects/aicos/evidence/research/aicos-option-c-transition-checklist-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-phase-3-provider-interface-sketch-20260428.md",
+        "brain/projects/aicos/working/status-items/aicos-search-focus-a1-context-retrieval.md"
+      ],
+      "expected_answer_shape": "Identify search/retrieval eval corpus as next focus before heavier provider/dashboard work.",
+      "failure_mode_if_missing": "A2 continues architecture notes instead of addressing A1 search quality."
+    },
+    {
+      "id": "a1-aicos-role-confusion",
+      "priority": "high",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "external work actor",
+      "work_type": "orientation",
+      "work_lane": "role-boundary",
+      "question": "is A1 a profession or a service role in AICOS?",
+      "context_kinds": ["canonical", "evidence", "policy"],
+      "expected_refs": [
+        "brain/projects/aicos/evidence/research/aicos-phase-2-actor-model-normalization-20260428.md",
+        "brain/projects/aicos/canonical/role-definitions.md"
+      ],
+      "expected_answer_shape": "Explain that A1/A2 are AICOS service-boundary classes, not professional roles.",
+      "failure_mode_if_missing": "Agents mix actor_role, agent_family, logical_role, and project role."
+    },
+    {
+      "id": "a1-aicos-brain-status-stale",
+      "priority": "high",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "operator",
+      "work_type": "ops",
+      "work_lane": "search-debug",
+      "question": "why does brain status say PG index stale while search still works?",
+      "context_kinds": ["status_items", "evidence"],
+      "expected_refs": [
+        "brain/projects/aicos/working/status-items/aicos-brain-status-pg-stale-false-signal.md",
+        "brain/projects/aicos/working/status-items/aicos-gbrain-full-sync-eisdir-runtime-cache.md"
+      ],
+      "expected_answer_shape": "Distinguish status false signal from actual retrieval outage and mention health/query checks.",
+      "failure_mode_if_missing": "A1 distrusts healthy search or wastes time debugging ranking."
+    },
+    {
+      "id": "a1-aicos-dashboard-coworker",
+      "priority": "medium",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "product reviewer",
+      "work_type": "planning",
+      "work_lane": "dashboard",
+      "question": "what should a future human and AI coworker dashboard show?",
+      "context_kinds": ["evidence", "status_items"],
+      "expected_refs": [
+        "brain/projects/aicos/evidence/research/aicos-phase-6-human-ai-coworker-model-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-phase-7-pm-integration-contract-20260428.md"
+      ],
+      "expected_answer_shape": "List active workers, active lanes, takeover-ready items, human attention queue, and project board summary.",
+      "failure_mode_if_missing": "Dashboard work turns into a PM clone instead of AICOS read surfaces."
+    },
+    {
+      "id": "a2-aicos-provider-boundary",
+      "priority": "medium",
+      "scope": "projects/aicos",
+      "actor_role": "A2-Core-R",
+      "functional_role": "architect",
+      "work_type": "planning",
+      "work_lane": "provider-boundary",
+      "question": "what provider interfaces should AICOS define without building a plugin framework?",
+      "context_kinds": ["evidence", "contract"],
+      "expected_refs": [
+        "brain/projects/aicos/evidence/research/aicos-phase-3-provider-interface-sketch-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-phase-2-semantic-core-boundary-20260428.md"
+      ],
+      "expected_answer_shape": "Mention retrieval, context store, jobs, auth/audit, connector/ingestion, optional relation graph.",
+      "failure_mode_if_missing": "A2 overbuilds a generic provider/plugin platform too early."
+    },
+    {
+      "id": "a1-aicos-deployment-profile",
+      "priority": "medium",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "operator",
+      "work_type": "ops",
+      "work_lane": "deployment",
+      "question": "which AICOS deployment profile is the current stack?",
+      "context_kinds": ["evidence", "status_items"],
+      "expected_refs": [
+        "brain/projects/aicos/evidence/research/aicos-phase-4-deployment-profiles-20260428.md",
+        "brain/projects/aicos/working/status-items/aicos-phase-4-deployment-profiles.md"
+      ],
+      "expected_answer_shape": "Say current markdown + GBrain + PG hybrid + HTTP MCP + token auth is the small-team bundle.",
+      "failure_mode_if_missing": "Agents treat the current substrate as universal AICOS architecture."
+    },
+    {
+      "id": "strategic-cto-architecture-review",
+      "priority": "high",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "CTO reviewer",
+      "work_type": "planning",
+      "work_lane": "strategic-review",
+      "question": "hãy đóng vai trò CTO, đọc tổng quan dự án, thiết kế kiến trúc và đánh giá AICOS hiện nay",
+      "context_kinds": ["current_state", "current_direction", "handoff", "status_items", "canonical", "policy", "contract", "evidence"],
+      "expected_refs": [
+        "brain/projects/aicos/evidence/research/aicos-option-c-architecture-north-star-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-phase-2-semantic-core-boundary-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-phase-3-provider-interface-sketch-20260428.md",
+        "brain/projects/aicos/working/current-direction.md"
+      ],
+      "expected_answer_shape": "A1 should read startup/handoff/status/health first, then retrieve current architecture north-star, semantic core, provider boundary, risks, and next architectural decisions.",
+      "failure_mode_if_missing": "CTO review answers from generic memory or stale design docs instead of current AICOS direction."
+    },
+    {
+      "id": "strategic-ceo-product-review",
+      "priority": "high",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "CEO reviewer",
+      "work_type": "planning",
+      "work_lane": "strategic-review",
+      "question": "hãy đóng vai trò CEO, đọc tổng quan dự án và đánh giá chiến lược sản phẩm AICOS",
+      "context_kinds": ["current_state", "current_direction", "handoff", "status_items", "canonical", "evidence"],
+      "expected_refs": [
+        "brain/projects/aicos/evidence/research/aicos-problem-framing-and-build-vs-buy-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-market-landscape-and-substrate-comparison-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-option-c-architecture-north-star-20260428.md",
+        "brain/projects/aicos/working/status-items/aicos-problem-framing-build-vs-buy.md"
+      ],
+      "expected_answer_shape": "A1 should retrieve product pain point, market/substrate comparison, build-vs-buy reasoning, current direction, and strategic risks.",
+      "failure_mode_if_missing": "CEO review becomes an architecture-only answer and misses business/product strategy."
+    },
+    {
+      "id": "strategic-build-vs-buy-review",
+      "priority": "high",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "CTO reviewer",
+      "work_type": "planning",
+      "work_lane": "strategic-review",
+      "question": "đánh giá build vs buy của AICOS: nên tự xây tiếp hay dùng GBrain, Mem0, Letta, Zep, Graphiti hoặc sản phẩm khác?",
+      "context_kinds": ["evidence", "status_items", "current_direction", "canonical"],
+      "expected_refs": [
+        "brain/projects/aicos/evidence/research/aicos-problem-framing-and-build-vs-buy-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-market-landscape-and-substrate-comparison-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-on-gbrain-substrate-decision-memo-20260424.md",
+        "brain/projects/aicos/working/status-items/aicos-gbrain-substrate-decision.md"
+      ],
+      "expected_answer_shape": "A1 should compare AICOS pain point against reusable substrates/products and recommend buy/build boundaries without overbuilding.",
+      "failure_mode_if_missing": "A1 recommends self-building or replacing AICOS without reading the existing buy/build analysis."
+    },
+    {
+      "id": "strategic-scalability-risk-review",
+      "priority": "medium",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "CTO reviewer",
+      "work_type": "planning",
+      "work_lane": "strategic-review",
+      "question": "đóng vai CTO đánh giá AICOS có scalable không, điểm nghẽn kiến trúc và rủi ro lớn nhất là gì?",
+      "context_kinds": ["evidence", "status_items", "contract", "current_direction"],
+      "expected_refs": [
+        "brain/projects/aicos/evidence/research/aicos-option-c-architecture-north-star-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-phase-2-semantic-core-boundary-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-phase-3-provider-interface-sketch-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-phase-4-deployment-profiles-20260428.md",
+        "brain/projects/aicos/working/status-items/risk-pg-truth-store.md",
+        "brain/projects/aicos/working/status-items/arch-single-machine-spof.md"
+      ],
+      "expected_answer_shape": "A1 should identify small-team vs company profiles, provider boundaries, PG truth-store risk, single-machine/SPOF risk, and scalability next steps.",
+      "failure_mode_if_missing": "Scalability review ignores deployment profiles and existing risk items."
+    },
+    {
+      "id": "strategic-misalignment-review",
+      "priority": "medium",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "CTO reviewer",
+      "work_type": "planning",
+      "work_lane": "strategic-review",
+      "question": "hãy phản biện xem AICOS hiện có lệch so với định hướng Option C và human-AI coworker dashboard không?",
+      "context_kinds": ["evidence", "status_items", "current_direction"],
+      "expected_refs": [
+        "brain/projects/aicos/evidence/research/aicos-option-c-architecture-north-star-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-option-c-transition-checklist-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-phase-6-human-ai-coworker-model-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-phase-7-pm-integration-contract-20260428.md"
+      ],
+      "expected_answer_shape": "A1 should compare current direction against Option C, coworker dashboard model, PM integration boundary, and list concrete misalignment risks.",
+      "failure_mode_if_missing": "A1 reviews isolated search/backend details and misses product direction alignment."
+    },
+    {
+      "id": "gbrain-mode-choice-direct-vs-query",
+      "priority": "medium",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "search user",
+      "work_type": "ops",
+      "work_lane": "search-mode",
+      "question": "when should I use direct read tools versus a bounded query in AICOS?",
+      "context_kinds": ["artifacts", "evidence", "contract"],
+      "expected_refs": [
+        "brain/projects/aicos/working/artifact-refs/artifact-query-guide-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-phase-5-retrieval-runtime-reduction-20260428.md",
+        "packages/aicos-kernel/contracts/mcp-bridge/local-mcp-bridge-contract.md"
+      ],
+      "expected_answer_shape": "Explain direct structured read for known surfaces, bounded query for unknown refs, file read only after MCP points to a source.",
+      "failure_mode_if_missing": "A1 burns context on broad raw searches or uses semantic query for known surfaces."
+    },
+    {
+      "id": "gbrain-search-health-check",
+      "priority": "medium",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "operator",
+      "work_type": "ops",
+      "work_lane": "search-debug",
+      "question": "how do I check whether AICOS search is stale or embeddings are broken?",
+      "context_kinds": ["artifacts", "status_items", "evidence"],
+      "expected_refs": [
+        "brain/projects/aicos/evidence/research/aicos-gbrain-search-patterns-for-a1-eval-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-retrieval-eval-run-20260428.md",
+        "brain/projects/aicos/working/artifact-refs/artifact-query-guide-20260428.md",
+        "brain/projects/aicos/working/status-items/aicos-brain-status-pg-stale-false-signal.md",
+        "brain/projects/aicos/evidence/research/aicos-retrieval-baseline-20260428.md"
+      ],
+      "expected_answer_shape": "Check brain status, daemon health, embedding coverage, and compare query behavior before changing ranking.",
+      "failure_mode_if_missing": "A1 treats every bad result as a ranking bug and ignores freshness/coverage."
+    },
+    {
+      "id": "gbrain-search-gap-feedback",
+      "priority": "medium",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "search user",
+      "work_type": "ops",
+      "work_lane": "search-feedback",
+      "question": "what should I do when AICOS search does not return the context I expected?",
+      "context_kinds": ["artifacts", "status_items", "evidence", "contract"],
+      "expected_refs": [
+        "brain/projects/aicos/working/artifact-refs/artifact-query-guide-20260428.md",
+        "brain/projects/aicos/working/artifact-refs/artifact-write-cookbook-20260428.md",
+        "brain/projects/aicos/working/status-items/aicos-feedback-closure-gate.md",
+        "brain/projects/aicos/evidence/research/aicos-phase-0-5-learning-loop-check-20260428.md"
+      ],
+      "expected_answer_shape": "Retry with context kinds/direct reads, then record feedback with expected-missing/broad/stale details.",
+      "failure_mode_if_missing": "Search failures disappear as chat history and never become product signals."
+    },
+    {
+      "id": "gbrain-source-precedence",
+      "priority": "medium",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "researcher",
+      "work_type": "research",
+      "work_lane": "source-precedence",
+      "question": "if AICOS search results conflict, which source should win?",
+      "context_kinds": ["artifacts", "evidence", "canonical", "policy"],
+      "expected_refs": [
+        "brain/projects/aicos/working/artifact-refs/artifact-query-guide-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-phase-2-semantic-core-boundary-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-option-c-architecture-north-star-20260428.md"
+      ],
+      "expected_answer_shape": "Current user instruction, project working/canonical surfaces, contracts/policies, then evidence/history/design docs.",
+      "failure_mode_if_missing": "A1 treats old evidence or query rank as higher authority than current working truth."
+    },
+    {
+      "id": "gbrain-eval-regression-purpose",
+      "priority": "medium",
+      "scope": "projects/aicos",
+      "actor_role": "A2-Core-C",
+      "functional_role": "retrieval maintainer",
+      "work_type": "ops",
+      "work_lane": "retrieval-eval",
+      "question": "why does AICOS need a retrieval eval corpus and runner before changing search?",
+      "context_kinds": ["evidence", "status_items"],
+      "expected_refs": [
+        "brain/projects/aicos/evidence/research/aicos-phase-5-retrieval-runtime-reduction-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-retrieval-baseline-20260428.md",
+        "brain/projects/aicos/working/status-items/aicos-search-eval-corpus-baseline-20260428.md"
+      ],
+      "expected_answer_shape": "Use top3/top5 expected-ref regression to detect whether search changes help A1 without adding heavy infrastructure.",
+      "failure_mode_if_missing": "Search changes become anecdotal and regress old A1 questions."
+    }
+  ]
+}

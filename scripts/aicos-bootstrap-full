@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+runtime_home="$repo_root/.runtime-home"
+venv="$runtime_home/aicos-venv"
+env_file="$runtime_home/aicos-daemon.env"
+
+with_embeddings=""
+daemon_host="127.0.0.1"
+daemon_port="8000"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  scripts/aicos-bootstrap-full [--with-embeddings|--without-embeddings] [--host 127.0.0.1] [--port 8000]
+
+Bootstraps the local Python runtime and writes .runtime-home/aicos-daemon.env.
+System PostgreSQL/pgvector install is attempted only when Docker or Homebrew is
+available and writable. If system install is blocked, the daemon still runs with
+markdown fallback and the guide explains the manual step.
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --with-embeddings) with_embeddings="yes"; shift ;;
+    --without-embeddings) with_embeddings="no"; shift ;;
+    --host) daemon_host="$2"; shift 2 ;;
+    --port) daemon_port="$2"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "Unknown argument: $1" >&2; usage; exit 2 ;;
+  esac
+done
+
+if [[ -z "$with_embeddings" ]]; then
+  read -r -p "Enable embedding/vector search? [y/N] " answer
+  case "${answer,,}" in
+    y|yes) with_embeddings="yes" ;;
+    *) with_embeddings="no" ;;
+  esac
+fi
+
+mkdir -p "$runtime_home"
+python3 -m venv "$venv"
+"$venv/bin/python" -m pip install --upgrade pip psycopg2-binary
+
+token="$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 40 || true)"
+if [[ -z "$token" ]]; then
+  token="change-me-$(date +%s)"
+fi
+
+openai_key=""
+if [[ "$with_embeddings" == "yes" ]]; then
+  read -r -s -p "OPENAI_API_KEY for embeddings: " openai_key
+  echo
+  if [[ -z "$openai_key" ]]; then
+    echo "No OPENAI_API_KEY provided; continuing without embeddings."
+    with_embeddings="no"
+  fi
+fi
+
+cat >"$env_file" <<EOF
+AICOS_MCP_DAEMON_URL=http://127.0.0.1:${daemon_port}/mcp
+AICOS_DAEMON_HOST=${daemon_host}
+AICOS_DAEMON_PORT=${daemon_port}
+AICOS_DAEMON_CACHE_TTL=30
+AICOS_DAEMON_TOKEN=${token}
+AICOS_PG_DSN=postgresql://aicos:aicos@127.0.0.1:5432/aicos
+AICOS_PG_CONNECT_TIMEOUT_SECONDS=5
+AICOS_PG_STATEMENT_TIMEOUT_MS=15000
+AICOS_PG_LOCK_TIMEOUT_MS=5000
+EOF
+
+if [[ "$with_embeddings" == "yes" ]]; then
+  {
+    echo "OPENAI_API_KEY=${openai_key}"
+    echo "AICOS_EMBEDDING_MODEL=text-embedding-3-small"
+    echo "AICOS_EMBEDDING_DIMENSIONS=1536"
+    echo "AICOS_EMBEDDING_BATCH_SIZE=32"
+  } >>"$env_file"
+else
+  {
+    echo "AICOS_EMBEDDINGS=auto"
+    echo "OPENAI_API_KEY="
+    echo "AICOS_EMBEDDING_MODEL=text-embedding-3-small"
+    echo "AICOS_EMBEDDING_DIMENSIONS=1536"
+    echo "AICOS_EMBEDDING_BATCH_SIZE=32"
+  } >>"$env_file"
+fi
+
+if command -v docker >/dev/null 2>&1; then
+  (cd "$repo_root/integrations/mcp-daemon" && docker compose up -d)
+elif command -v brew >/dev/null 2>&1; then
+  if brew list --versions postgresql@18 pgvector >/dev/null 2>&1; then
+    :
+  else
+    echo "Attempting Homebrew install: postgresql@18 pgvector"
+    if ! brew install postgresql@18 pgvector; then
+      echo "Homebrew install failed. Install PostgreSQL+pgvector manually, then rerun doctor."
+    fi
+  fi
+  if brew services list >/dev/null 2>&1; then
+    brew services start postgresql@18 || true
+  fi
+  if command -v createdb >/dev/null 2>&1; then
+    createdb aicos 2>/dev/null || true
+  elif [[ -x /opt/homebrew/opt/postgresql@18/bin/createdb ]]; then
+    /opt/homebrew/opt/postgresql@18/bin/createdb aicos 2>/dev/null || true
+  fi
+else
+  echo "No Docker or Homebrew found. Install PostgreSQL+pgvector manually."
+fi
+
+echo "Bootstrap files written:"
+echo "- $venv"
+echo "- $env_file"
+echo
+echo "Start daemon:"
+echo "  scripts/aicos-daemon-start"
+echo
+echo "Check:"
+echo "  ./aicos mcp doctor --mode daemon --daemon-url http://127.0.0.1:${daemon_port} --token <token-from-env-file>"

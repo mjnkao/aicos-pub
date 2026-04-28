@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aicos://schemas/branch-state.schema.json",
+  "title": "AICOS Branch State",
+  "type": "object",
+  "required": ["schema_version", "kind", "project_id", "branch_id", "status"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "kind": { "const": "aicos.branch_state" },
+    "project_id": { "type": "string" },
+    "branch_id": { "type": "string" },
+    "status": { "type": "string" },
+    "recommendation": { "type": "string" }
+  }
+}
+

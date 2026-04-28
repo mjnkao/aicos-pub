@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aicos://schemas/option-packet.schema.json",
+  "title": "AICOS Option Packet",
+  "type": "object",
+  "required": ["schema_version", "kind", "project_id", "blocker_id", "options", "recommended_option_id"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "kind": { "const": "aicos.option_packet" },
+    "project_id": { "type": "string" },
+    "blocker_id": { "type": "string" },
+    "blocker_source": { "type": "string" },
+    "title": { "type": "string" },
+    "generated_at": { "type": "string" },
+    "recommended_option_id": { "type": "string" },
+    "policy_source": { "type": "string" },
+    "options": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "branch_id", "recommendation"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "branch_id": { "type": "string" },
+          "recommendation": { "type": "string" }
+        }
+      }
+    }
+  }
+}
+

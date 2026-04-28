@@ -1,0 +1,23 @@
+[project]
+name = "aicos-pub"
+version = "0.1.0"
+description = "Public staging package for AICOS, a local-first context and coordination layer for AI agents."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+dependencies = [
+  "psycopg2-binary>=2.9.9",
+]
+
+[project.scripts]
+aicos = "aicos_kernel.cli:main"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "packages/aicos-kernel"}
+
+[tool.setuptools.packages.find]
+where = ["packages/aicos-kernel"]

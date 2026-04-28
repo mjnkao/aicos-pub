@@ -1,0 +1,227 @@
+#!/usr/bin/env python3
+"""Run a small retrieval regression corpus through the AICOS HTTP MCP daemon."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+import urllib.error
+import urllib.request
+from pathlib import Path
+from typing import Any
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_CORPUS = REPO_ROOT / "brain/projects/aicos/evidence/research/aicos-retrieval-eval-corpus-20260428.json"
+DEFAULT_URL = os.environ.get("AICOS_MCP_URL") or os.environ.get("AICOS_MCP_DAEMON_URL") or "http://127.0.0.1:8000/mcp"
+
+
+def load_json(path: Path) -> dict[str, Any]:
+    with path.open("r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def call_mcp(url: str, token: str, item: dict[str, Any], max_results: int, request_id: int) -> dict[str, Any]:
+    arguments: dict[str, Any] = {
+        "actor": item.get("actor_role", "A1"),
+        "scope": item["scope"],
+        "query": item["question"],
+        "agent_family": item.get("agent_family", "codex"),
+        "agent_instance_id": item.get("agent_instance_id", "aicos-retrieval-eval"),
+        "execution_context": item.get("execution_context", "cli"),
+        "work_type": item.get("work_type", "orientation"),
+        "work_lane": item.get("work_lane", "intake"),
+        "max_results": max_results,
+    }
+    optional_fields = ("context_kinds", "worktree_path", "work_branch")
+    for field in optional_fields:
+        if item.get(field):
+            arguments[field] = item[field]
+
+    body = json.dumps(
+        {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "method": "tools/call",
+            "params": {
+                "name": "aicos_query_project_context",
+                "arguments": arguments,
+            },
+        },
+        ensure_ascii=False,
+    ).encode("utf-8")
+    request = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+        method="POST",
+    )
+    if token:
+        request.add_header("Authorization", f"Bearer {token}")
+
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            outer = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"HTTP {exc.code}: {detail}") from exc
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        raise RuntimeError(str(exc)) from exc
+
+    if "error" in outer:
+        raise RuntimeError(json.dumps(outer["error"], ensure_ascii=False))
+
+    result = outer.get("result") or {}
+    if result.get("isError"):
+        text = tool_text(result)
+        raise RuntimeError(text or "MCP tool returned isError=true")
+
+    text = tool_text(result)
+    if not text:
+        raise RuntimeError("MCP tool returned no text content")
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Tool text is not JSON: {exc}") from exc
+
+
+def tool_text(result: dict[str, Any]) -> str:
+    content = result.get("content") or []
+    for item in content:
+        if isinstance(item, dict) and item.get("type") == "text":
+            return str(item.get("text", ""))
+    return ""
+
+
+def result_refs(payload: dict[str, Any]) -> list[str]:
+    refs: list[str] = []
+    for item in payload.get("results") or []:
+        if isinstance(item, dict):
+            ref = item.get("ref") or item.get("source_ref") or item.get("path")
+            if isinstance(ref, str):
+                refs.append(ref)
+    return refs
+
+
+def expected_rank(refs: list[str], expected_refs: list[str]) -> int | None:
+    for idx, ref in enumerate(refs, start=1):
+        for expected in expected_refs:
+            if ref == expected or ref.endswith(expected):
+                return idx
+    return None
+
+
+def run_eval(corpus: dict[str, Any], url: str, token: str, max_results: int) -> dict[str, Any]:
+    rows: list[dict[str, Any]] = []
+    top3_hits = 0
+    top5_hits = 0
+    errors = 0
+
+    for idx, item in enumerate(corpus.get("items") or [], start=1):
+        row: dict[str, Any] = {
+            "id": item.get("id"),
+            "priority": item.get("priority", "medium"),
+            "scope": item.get("scope"),
+            "question": item.get("question"),
+            "expected_refs": item.get("expected_refs", []),
+        }
+        try:
+            payload = call_mcp(url, token, item, max_results, idx)
+            refs = result_refs(payload)
+            rank = expected_rank(refs, row["expected_refs"])
+            row.update(
+                {
+                    "search_engine": payload.get("search_engine"),
+                    "result_count": len(refs),
+                    "top_refs": refs[:5],
+                    "expected_rank": rank,
+                    "top3_hit": rank is not None and rank <= 3,
+                    "top5_hit": rank is not None and rank <= 5,
+                    "error": None,
+                }
+            )
+            if row["top3_hit"]:
+                top3_hits += 1
+            if row["top5_hit"]:
+                top5_hits += 1
+        except Exception as exc:  # noqa: BLE001 - eval should report all rows
+            errors += 1
+            row.update(
+                {
+                    "search_engine": None,
+                    "result_count": 0,
+                    "top_refs": [],
+                    "expected_rank": None,
+                    "top3_hit": False,
+                    "top5_hit": False,
+                    "error": str(exc),
+                }
+            )
+        rows.append(row)
+
+    total = len(rows)
+    return {
+        "schema_version": "0.1",
+        "kind": "aicos.retrieval_eval_result",
+        "corpus_status": corpus.get("status"),
+        "corpus_date": corpus.get("date"),
+        "item_count": total,
+        "top3_hits": top3_hits,
+        "top5_hits": top5_hits,
+        "errors": errors,
+        "top3_rate": round(top3_hits / total, 4) if total else 0,
+        "top5_rate": round(top5_hits / total, 4) if total else 0,
+        "rows": rows,
+    }
+
+
+def print_text(report: dict[str, Any]) -> None:
+    total = report["item_count"]
+    print("AICOS retrieval eval")
+    print(f"- items: {total}")
+    print(f"- top3 hits: {report['top3_hits']}/{total}")
+    print(f"- top5 hits: {report['top5_hits']}/{total}")
+    print(f"- errors: {report['errors']}")
+    misses = [row for row in report["rows"] if not row["top5_hit"] or row["error"]]
+    if not misses:
+        print("- top5 misses: none")
+        return
+    print("")
+    print("Misses / errors:")
+    for row in misses:
+        print(f"- {row['id']}: rank={row['expected_rank']} error={row['error'] or '-'}")
+        if row["top_refs"]:
+            print(f"  top refs: {', '.join(row['top_refs'])}")
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run AICOS retrieval eval corpus through HTTP MCP.")
+    parser.add_argument("--corpus", default=str(DEFAULT_CORPUS), help="Path to eval corpus JSON.")
+    parser.add_argument("--url", default=DEFAULT_URL, help="HTTP MCP URL, default from AICOS_MCP_URL/AICOS_MCP_DAEMON_URL.")
+    parser.add_argument("--token", default=os.environ.get("AICOS_DAEMON_TOKEN", ""), help="Bearer token. Prefer env AICOS_DAEMON_TOKEN.")
+    parser.add_argument("--max-results", type=int, default=8, help="Max query results per item.")
+    parser.add_argument("--format", choices=("text", "json"), default="text", help="Output format.")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str]) -> int:
+    args = parse_args(argv)
+    corpus_path = Path(args.corpus)
+    if not corpus_path.is_absolute():
+        corpus_path = (Path.cwd() / corpus_path).resolve()
+    corpus = load_json(corpus_path)
+    report = run_eval(corpus, args.url.rstrip("/"), args.token, args.max_results)
+    if args.format == "json":
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+    else:
+        print_text(report)
+    return 1 if report["errors"] else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

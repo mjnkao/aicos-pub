@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aicos://schemas/service-feedback.schema.json",
+  "title": "AICOS Service Feedback",
+  "type": "object",
+  "required": ["schema_version", "kind", "feedback_id", "source", "summary"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "kind": { "const": "aicos.service_feedback" },
+    "feedback_id": { "type": "string" },
+    "source": { "type": "string" },
+    "summary": { "type": "string" },
+    "status": { "type": "string" }
+  }
+}
+

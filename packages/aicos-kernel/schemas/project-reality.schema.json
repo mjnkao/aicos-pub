@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aicos://schemas/project-reality.schema.json",
+  "title": "AICOS Project Reality",
+  "type": "object",
+  "required": ["schema_version", "kind", "project_id", "state"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "kind": { "const": "aicos.project_reality" },
+    "project_id": { "type": "string" },
+    "state": { "enum": ["canonical", "working", "evidence", "branch"] },
+    "source_path": { "type": "string" }
+  }
+}
+

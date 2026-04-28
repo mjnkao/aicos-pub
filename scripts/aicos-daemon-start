@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+env_file="${AICOS_DAEMON_ENV_FILE:-$repo_root/.runtime-home/aicos-daemon.env}"
+
+if [[ -f "$env_file" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$env_file"
+  set +a
+fi
+
+python_bin="${AICOS_PYTHON:-$repo_root/.runtime-home/aicos-venv/bin/python}"
+if [[ ! -x "$python_bin" ]]; then
+  python_bin="${AICOS_PYTHON:-python3}"
+fi
+
+host="${AICOS_DAEMON_HOST:-127.0.0.1}"
+port="${AICOS_DAEMON_PORT:-8000}"
+cache_ttl="${AICOS_DAEMON_CACHE_TTL:-30}"
+token="${AICOS_DAEMON_TOKEN:-}"
+export AICOS_PG_DSN="${AICOS_PG_DSN:-postgresql://aicos:aicos@127.0.0.1:5432/aicos}"
+
+if [[ "$host" == "127.0.0.1" || "$host" == "localhost" || "$host" == "::1" ]]; then
+  if [[ "${AICOS_REQUIRE_LOCAL_TOKEN:-0}" != "1" ]]; then
+    token=""
+  fi
+fi
+
+exec "$python_bin" "$repo_root/integrations/mcp-daemon/aicos_mcp_daemon.py" \
+  --host "$host" \
+  --port "$port" \
+  --cache-ttl "$cache_ttl" \
+  --token "$token" \
+  "$@"

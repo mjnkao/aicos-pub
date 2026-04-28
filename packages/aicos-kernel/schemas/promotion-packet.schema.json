@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aicos://schemas/promotion-packet.schema.json",
+  "title": "AICOS Promotion Packet",
+  "type": "object",
+  "required": ["schema_version", "kind", "lane", "source_path", "status"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "kind": { "const": "aicos.promotion_packet" },
+    "lane": { "enum": ["evidence-to-working", "working-to-canonical"] },
+    "source_path": { "type": "string" },
+    "target_path": { "type": "string" },
+    "status": { "type": "string" }
+  }
+}
+

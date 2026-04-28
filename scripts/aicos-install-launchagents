@@ -1,0 +1,166 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+launch_dir="$HOME/Library/LaunchAgents"
+log_dir="$HOME/Library/Logs/aicos"
+app_support_dir="$HOME/Library/Application Support/aicos"
+daemon_plist="$launch_dir/ai.aicos.mcp-daemon.plist"
+monitor_plist="$launch_dir/ai.aicos.health-monitor.plist"
+proxy_plist="$launch_dir/ai.aicos.https-proxy.plist"
+venv_python="$repo_root/.runtime-home/aicos-venv/bin/python"
+python_bin="/usr/bin/python3"
+if [[ -x "$venv_python" ]]; then
+  python_bin="$venv_python"
+fi
+
+mkdir -p "$launch_dir" "$log_dir" "$app_support_dir"
+
+cat >"$daemon_plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>ai.aicos.mcp-daemon</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>${repo_root}/scripts/aicos-daemon-start.sh</string>
+  </array>
+
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+
+  <key>StandardOutPath</key>
+  <string>${log_dir}/mcp-daemon.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>${log_dir}/mcp-daemon.err.log</string>
+</dict>
+</plist>
+EOF
+
+cat >"$monitor_plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>ai.aicos.health-monitor</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>${python_bin}</string>
+    <string>${repo_root}/integrations/mcp-daemon/aicos_health_monitor.py</string>
+    <string>--env-file</string>
+    <string>${repo_root}/.runtime-home/aicos-daemon.env</string>
+    <string>--status-file</string>
+    <string>${app_support_dir}/health-status.json</string>
+    <string>--log-dir</string>
+    <string>${log_dir}</string>
+  </array>
+
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StartInterval</key>
+  <integer>60</integer>
+
+  <key>StandardOutPath</key>
+  <string>${log_dir}/health-monitor.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>${log_dir}/health-monitor.err.log</string>
+</dict>
+</plist>
+EOF
+
+proxy_cert="${AICOS_HTTPS_CERT:-$HOME/.local/share/mkcert/localhost+2.pem}"
+proxy_key="${AICOS_HTTPS_KEY:-$HOME/.local/share/mkcert/localhost+2-key.pem}"
+if [[ -f "$proxy_cert" && -f "$proxy_key" ]]; then
+cat >"$proxy_plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>ai.aicos.https-proxy</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>${python_bin}</string>
+    <string>${repo_root}/integrations/mcp-daemon/aicos_https_proxy.py</string>
+    <string>--env-file</string>
+    <string>${repo_root}/.runtime-home/aicos-daemon.env</string>
+    <string>--cert</string>
+    <string>${proxy_cert}</string>
+    <string>--key</string>
+    <string>${proxy_key}</string>
+    <string>--https-port</string>
+    <string>8443</string>
+    <string>--host</string>
+    <string>127.0.0.1</string>
+    <string>--daemon-url</string>
+    <string>http://127.0.0.1:8000</string>
+  </array>
+
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+
+  <key>StandardOutPath</key>
+  <string>${log_dir}/https-proxy.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>${log_dir}/https-proxy.err.log</string>
+</dict>
+</plist>
+EOF
+fi
+
+launchctl unload "$daemon_plist" >/dev/null 2>&1 || true
+launchctl unload "$monitor_plist" >/dev/null 2>&1 || true
+launchctl unload "$proxy_plist" >/dev/null 2>&1 || true
+launchctl load "$daemon_plist"
+launchctl load "$monitor_plist"
+if [[ -f "$proxy_plist" ]]; then
+  launchctl load "$proxy_plist"
+fi
+
+echo "Installed and loaded:"
+echo "- $daemon_plist"
+echo "- $monitor_plist"
+if [[ -f "$proxy_plist" ]]; then
+  echo "- $proxy_plist"
+fi
+echo
+echo "Logs:"
+echo "- $log_dir/mcp-daemon.out.log"
+echo "- $log_dir/mcp-daemon.err.log"
+echo "- $log_dir/mcp-audit.jsonl"
+echo "- $log_dir/health-monitor.out.log"
+echo "- $log_dir/health-monitor.err.log"
+if [[ -f "$proxy_plist" ]]; then
+  echo "- $log_dir/https-proxy.out.log"
+  echo "- $log_dir/https-proxy.err.log"
+fi
+echo
+echo "Check:"
+echo "  launchctl list | grep ai.aicos.mcp-daemon"
+echo "  launchctl list | grep ai.aicos.health-monitor"
+echo "  tail -50 '$log_dir/mcp-daemon.err.log'"
+echo "  cat '$app_support_dir/health-status.json'"

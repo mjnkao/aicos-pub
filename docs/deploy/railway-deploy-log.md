@@ -914,6 +914,47 @@ Final verification:
 - `codex-agent-01` successfully wrote feedback to `projects/agents-dashboard`.
 - Both labels were denied when attempting to write protected `projects/aicos`.
 
+## 2026-04-28 - Normalize bare MCP project scopes
+
+Context:
+
+- Claude Code reported JSON-RPC error `-32000` with
+  `Project 'agents-dashboard' not found`.
+- Direct reproduction showed the server worked with
+  `scope=projects/agents-dashboard`, but clients could send bare project ids
+  such as `scope=agents-dashboard` or `project_slug=agents-dashboard`.
+
+Fix:
+
+- Updated the MCP daemon to normalize common client project-id shapes before
+  authorization and dispatch:
+  - `scope=agents-dashboard` -> `scope=projects/agents-dashboard`
+  - `project_slug=agents-dashboard` -> `scope=projects/agents-dashboard`
+- The normalization only applies when the matching `brain/projects/<id>` folder
+  exists.
+- Pushed commit `23f9bab`.
+
+Deploy:
+
+```bash
+railway up --ci --message "Normalize bare MCP project scopes"
+```
+
+Result:
+
+- Build succeeded.
+- Deploy succeeded.
+- Deployment id: `8f7dfab3-9cb4-41c2-9fc3-22d57bbbe0f6`.
+- `/health` reported `postgresql_hybrid`, PostgreSQL `active`, and pgvector
+  `active`.
+
+Final verification with `claude-agent-01`:
+
+- `aicos_get_handoff_current` succeeded with `scope=agents-dashboard`.
+- `aicos_get_handoff_current` succeeded with `project_slug=agents-dashboard`.
+- `aicos_record_feedback` succeeded with `scope=agents-dashboard`, and the
+  write was recorded under normalized `scope=projects/agents-dashboard`.
+
 ## 2026-04-28 - Final log-only deploy verification
 
 Context:

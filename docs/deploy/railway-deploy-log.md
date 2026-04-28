@@ -771,6 +771,59 @@ Final verification:
 - Queries against `projects/templates` and `projects/agents-dashboard` returned
   `engine: postgresql_hybrid` and `vector_status: active`.
 
+## 2026-04-28 - Dashboard project discovery hardening
+
+Context:
+
+- External agents could connect with the Huy/Vinh tokens but still fail to
+  discover the dashboard project if they started from project registry or used
+  the local-folder-derived scope name `projects/agents-pm-dashboard`.
+- The canonical AICOS scope remains `projects/agents-dashboard`.
+
+Actions:
+
+- Added `brain/shared/project-registry.md` listing public Railway project
+  scopes.
+- Added dashboard startup files:
+  - `brain/projects/agents-dashboard/working/context-ladder.md`
+  - `brain/projects/agents-dashboard/working/current-state.md`
+  - `brain/projects/agents-dashboard/working/current-direction.md`
+- Added alias scope `projects/agents-pm-dashboard` with handoff/startup files
+  that redirect agents to the canonical `projects/agents-dashboard` scope.
+- Pushed commit `99ac618`.
+
+Deploy:
+
+```bash
+railway up --ci --message "Add dashboard project discovery alias"
+```
+
+Result:
+
+- Build succeeded.
+- Deploy succeeded.
+- Deployment id: `bfdcb168-6fb0-40c5-986e-18c55358bc02`.
+
+Known issue repeated:
+
+- First post-deploy health check reported `search_engine: markdown_direct`.
+- PostgreSQL status reported `schema failed: canceling statement due to lock timeout`.
+
+Fix:
+
+```bash
+railway service restart --service aicos-pub --yes --json
+```
+
+Final verification:
+
+- `/health` returned `postgresql_hybrid`, PostgreSQL `active`, pgvector
+  `active`, and embeddings `enabled`.
+- `aicos_get_project_registry` found both `agents-dashboard` and
+  `agents-pm-dashboard`.
+- `aicos_get_handoff_current` and `aicos_get_startup_bundle` succeeded for
+  both `projects/agents-dashboard` and `projects/agents-pm-dashboard`.
+
 ## 2026-04-28 - Final log-only deploy verification
 
 Context:

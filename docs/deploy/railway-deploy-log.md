@@ -824,6 +824,47 @@ Final verification:
 - `aicos_get_handoff_current` and `aicos_get_startup_bundle` succeeded for
   both `projects/agents-dashboard` and `projects/agents-pm-dashboard`.
 
+## 2026-04-28 - Explicit Huy/Vinh dashboard write policy
+
+Context:
+
+- Claude Code reported that write scope was not open for
+  `projects/agents-dashboard` and suggested writing via `projects/aicos-pub`
+  feedback for maintainer action.
+- The previous Huy/Vinh policy explicitly configured read scopes but relied on
+  daemon default write behavior for non-protected scopes. That worked in direct
+  smoke tests, but it was ambiguous for clients and operators.
+
+Actions:
+
+- Updated Railway `AICOS_DAEMON_TOKEN_SCOPE_POLICY` for `huy-1`, `huy-2`,
+  `vinh-1`, and `vinh-2` to explicitly include write scopes:
+  - `projects/aicos-pub`
+  - `projects/templates`
+  - `projects/agents-dashboard`
+  - `projects/agents-dashboard/*`
+  - `projects/agents-pm-dashboard`
+  - `projects/agents-pm-dashboard/*`
+- Kept protected `projects/aicos` excluded.
+- Redeployed Railway service.
+
+Deploy/restart:
+
+```bash
+railway service redeploy --service aicos-pub --yes --json
+```
+
+Result:
+
+- Redeploy id: `ef7fb593-5775-40a8-9d41-2394fce99cf3`.
+- `/health` reported `postgresql_hybrid`, PostgreSQL `active`, and pgvector
+  `active`.
+
+Final verification:
+
+- `huy-1` successfully wrote feedback to `projects/agents-dashboard`.
+- `huy-1` was denied when attempting to write protected `projects/aicos`.
+
 ## 2026-04-28 - Final log-only deploy verification
 
 Context:

@@ -654,6 +654,62 @@ Final verification:
 - MCP query for runtime identity schema returned `postgresql_hybrid` with
   `vector_status: active`.
 
+## 2026-04-28 - Codex A2 CTO Railway MCP token
+
+Actions:
+
+- Created a dedicated Railway bearer token label `codex-a2-cto-20260428`.
+- Added the label to `AICOS_DAEMON_EXTRA_TOKENS`.
+- Added explicit scope policy:
+  - read `projects/*`
+  - write `projects/*`
+- Added the label to `AICOS_DAEMON_INTERNAL_TOKEN_LABELS`, making it an
+  internal maintainer token for protected public `projects/aicos` writes.
+- Stored the secret token locally outside git:
+  - `<codex-home>/secrets/aicos-pub-codex-a2-cto-20260428.token`
+  - `.runtime-home/codex-a2-cto-20260428-token.md`
+- Added local Codex MCP config in `<codex-home>/config.toml`:
+  - server name: `aicos_railway_cto`
+  - URL: `https://aicos-pub-production.up.railway.app/mcp`
+  - auth: `Authorization: Bearer <codex-a2-cto-20260428-token>`
+
+Runtime identity used for smoke tests:
+
+- `runtime`: `public-railway-aicos`
+- `mcp_name`: `aicos_railway_cto`
+- `agent_position`: `internal_agent`
+- `actor_role`: `A2-Core-C`
+- `agent_family`: `codex`
+- `functional_role`: `CTO/fullstack dev`
+- `scope`: `projects/aicos`
+
+Deploy/restart:
+
+- Ran `railway service redeploy --service aicos-pub --yes --json`.
+- Redeploy id: `abfa0fe5-2085-4467-8738-59089ee0b003`.
+- After redeploy, `/health` briefly returned HTTP 502 while warming.
+- The service then repeated the known PostgreSQL schema lock timeout and
+  temporarily fell back to `markdown_direct`.
+- Ran `railway service restart --service aicos-pub --yes --json`.
+
+Final verification:
+
+- New token authenticated successfully.
+- `/health` reported `codex-a2-cto-20260428` in accepted token labels.
+- `/health` reported `codex-a2-cto-20260428` in
+  `scope_authorization.internal_token_labels`.
+- `/health` reported `search_engine: postgresql_hybrid`.
+- `/health` reported `search_status.postgresql: active`.
+- `/health` reported `search_status.vector: pgvector active`.
+- `/health` reported `search_status.embeddings: enabled`.
+- `/health` reported `embedding_index: completed`.
+- MCP `tools/list` returned 17 tools.
+- MCP `aicos_record_feedback` successfully wrote to public `projects/aicos`
+  as `A2-Core-C`:
+  `brain/projects/aicos/working/feedback/20260428t115123z-0b64bc44d4.md`.
+- MCP query smoke test returned `engine: postgresql_hybrid` and
+  `vector_status: active`.
+
 ## 2026-04-28 - Final log-only deploy verification
 
 Context:

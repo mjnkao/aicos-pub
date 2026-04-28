@@ -17,15 +17,6 @@ Project truth remains under `brain/projects/<project-id>/`.
   - `aicos_get_handoff_current`
   - `aicos_get_status_items`
 
-### aicos-pub
-
-- Scope: `projects/aicos-pub`
-- Role: Public-export and community distribution lane
-- Protected writes: no
-- First reads:
-  - `aicos_get_handoff_current`
-  - `aicos_get_startup_bundle`
-
 ### templates
 
 - Scope: `projects/templates`
@@ -38,7 +29,6 @@ Project truth remains under `brain/projects/<project-id>/`.
 ### agents-dashboard
 
 - Scope: `projects/agents-dashboard`
-- Alias: `projects/agents-pm-dashboard`
 - Role: AI Agent PM Dashboard coordination scope
 - Local code path: `/Users/minh/Projects/agents-pm-dashboard`
 - Git repository: `git@github.com:mjnkao/ai-agent-pm-dashboard.git`
@@ -51,6 +41,6 @@ Project truth remains under `brain/projects/<project-id>/`.
 
 ## Agent Notes
 
-If an agent is working on the dashboard repo, prefer
-`scope=projects/agents-dashboard`. The alias `projects/agents-pm-dashboard`
-exists only to reduce confusion with the local folder name.
+If an agent is working on the dashboard repo, use
+`scope=projects/agents-dashboard`. Do not use `projects/agents-pm-dashboard`;
+that alias was removed to keep public project scopes unambiguous.

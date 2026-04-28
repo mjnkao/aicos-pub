@@ -1049,6 +1049,43 @@ Final verification with `codex-a2-cto-20260428`:
 - Read `projects/agents-dashboard`: success.
 - Write `projects/agents-dashboard`: success.
 
+## 2026-04-28 - Remove obsolete public project scopes
+
+Context:
+
+- `projects/aicos-pub` was confusing public runtime/project identity. The
+  Railway service and repo can still be called aicos-pub, but public AICOS
+  project scopes should not include `projects/aicos-pub`.
+- `projects/agents-pm-dashboard` was only an alias for the dashboard local
+  folder name and created more confusion than value.
+
+Actions:
+
+- Removed public project scope files:
+  - `brain/projects/aicos-pub/`
+  - `brain/projects/agents-pm-dashboard/`
+- Updated `brain/shared/project-registry.md`:
+  - removed `projects/aicos-pub`
+  - removed the `projects/agents-pm-dashboard` alias
+  - kept canonical dashboard scope `projects/agents-dashboard`
+- Updated dashboard context ladder to state that `projects/agents-dashboard` is
+  the only AICOS scope for the dashboard.
+- Updated Railway token scope policy for public/A1 labels so they can only
+  read/write:
+  - `projects/templates`
+  - `projects/templates/*`
+  - `projects/agents-dashboard`
+  - `projects/agents-dashboard/*`
+- Kept internal CTO token `codex-a2-cto-20260428` at explicit full access:
+  read/write `projects/*`.
+
+Expected result:
+
+- External/public agents should use `projects/agents-dashboard` for the
+  dashboard.
+- `projects/aicos-pub` and `projects/agents-pm-dashboard` should disappear from
+  public project discovery after deploy.
+
 ## 2026-04-28 - Final log-only deploy verification
 
 Context:

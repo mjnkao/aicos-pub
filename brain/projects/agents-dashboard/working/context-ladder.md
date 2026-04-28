@@ -26,9 +26,8 @@ The project is a starter coordination scope for the AI Agent PM Dashboard.
 Agents should use AICOS for handoff, status, feedback, and project-management
 context, while treating the dashboard GitHub repo as code authority.
 
-## Layer 3 - Common Confusion
+## Layer 3 - Scope Naming
 
 The AICOS scope is `projects/agents-dashboard`. The local folder and repo use
-`agents-pm-dashboard` / `ai-agent-pm-dashboard`. An alias scope
-`projects/agents-pm-dashboard` is also available, but agents should prefer the
-canonical AICOS scope `projects/agents-dashboard`.
+`agents-pm-dashboard` / `ai-agent-pm-dashboard`, but there is no separate AICOS
+project scope named `projects/agents-pm-dashboard`.

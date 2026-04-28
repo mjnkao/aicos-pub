@@ -606,3 +606,50 @@ Final verification:
 - MCP `tools/list` returned 17 tools.
 - MCP query for runtime identity schema returned `postgresql_hybrid` with
   `vector_status: active` and vector-ranked runtime identity refs.
+
+## 2026-04-28 - Deploy log and exported feedback follow-up
+
+Context:
+
+- After the A2 sync deployment above, the public deploy log itself and one new
+  exported private feedback record were committed to `main`.
+- Commit pushed: `3b465c6`.
+
+Deploy:
+
+```bash
+railway up --ci --message "Deploy A2 sync deployment log"
+```
+
+Result:
+
+- Build succeeded.
+- Deploy succeeded.
+- Deployment id: `36c490d9-97eb-4e71-a205-516b170a7966`.
+
+Known issue repeated:
+
+- First post-deploy health check reported `search_engine: markdown_direct`.
+- PostgreSQL status reported `schema failed: canceling statement due to lock timeout`.
+
+Fix:
+
+```bash
+railway service restart --service aicos-pub --yes --json
+```
+
+Final verification:
+
+- `/health` reported `search_engine: postgresql_hybrid`.
+- `search_status.postgresql: active`.
+- `search_status.vector: pgvector active`.
+- `search_status.embeddings: enabled`.
+- `embedding_index: completed`.
+- `total_docs: 188`.
+- `embedded_docs: 188`.
+- `embedding_coverage: 1.0`.
+- Project breakdown included `projects/aicos` with 167 docs and
+  `projects/aicos-pub` with 5 docs.
+- MCP `tools/list` returned 17 tools.
+- MCP query for runtime identity schema returned `postgresql_hybrid` with
+  `vector_status: active`.

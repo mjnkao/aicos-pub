@@ -710,6 +710,67 @@ Final verification:
 - MCP query smoke test returned `engine: postgresql_hybrid` and
   `vector_status: active`.
 
+## 2026-04-28 - External Huy/Vinh agent tokens and public project scopes
+
+Actions:
+
+- Created four external Railway bearer token labels:
+  - `huy-1`
+  - `huy-2`
+  - `vinh-1`
+  - `vinh-2`
+- Stored the real token values only in local ignored runtime documentation:
+  - `.runtime-home/AICOS_RAILWAY_AGENT_ACCESS_HUY_VINH.md`
+- Added explicit read policy for each token:
+  - read `projects/*`
+- Did not add explicit write policy for these labels. This intentionally uses
+  daemon default write behavior: writes are allowed to non-protected project
+  scopes, while protected `projects/aicos` writes are denied unless the token is
+  an internal maintainer label.
+- Added public project scopes:
+  - `projects/templates`
+  - `projects/agents-dashboard`
+- Connected `projects/agents-dashboard` to:
+  - local path `/Users/minh/Projects/agents-pm-dashboard`
+  - git repository `git@github.com:mjnkao/ai-agent-pm-dashboard.git`
+  - GitHub URL `https://github.com/mjnkao/ai-agent-pm-dashboard`
+- Pushed public project-scope commit `bd5442d`.
+
+Deploy:
+
+```bash
+railway up --ci --message "Add public agent project scopes"
+```
+
+Result:
+
+- Build succeeded.
+- Deploy succeeded.
+- Deployment id: `8c32c278-fcf5-4088-b431-a6f9e96c1ce5`.
+
+Known issue repeated:
+
+- First post-deploy health check reported `search_engine: markdown_direct`.
+- PostgreSQL status reported `schema failed: canceling statement due to lock timeout`.
+
+Fix:
+
+```bash
+railway service restart --service aicos-pub --yes --json
+```
+
+Final verification:
+
+- `/health` reported `search_engine: postgresql_hybrid`.
+- `/health` reported PostgreSQL `active`, pgvector `active`, embeddings
+  `enabled`, and embedding index `completed`.
+- `/health` accepted all four new token labels.
+- Each token returned 17 MCP tools from `tools/list`.
+- Each token successfully wrote feedback to `projects/agents-dashboard`.
+- Each token was denied when attempting to write protected `projects/aicos`.
+- Queries against `projects/templates` and `projects/agents-dashboard` returned
+  `engine: postgresql_hybrid` and `vector_status: active`.
+
 ## 2026-04-28 - Final log-only deploy verification
 
 Context:

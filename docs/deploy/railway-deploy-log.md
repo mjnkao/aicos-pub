@@ -1013,6 +1013,42 @@ Final verification:
 - `codex-agent-01` can read and write `projects/agents-dashboard`.
 - `codex-agent-01` is denied for both read and write on `projects/aicos`.
 
+## 2026-04-28 - Explicit full policy for Codex A2 CTO token
+
+Context:
+
+- Public/A1 tokens are intentionally restricted away from `projects/aicos`.
+- The internal Codex CTO token must retain full read/write access for A2 core
+  maintenance and cross-project operations.
+
+Actions:
+
+- Updated Railway `AICOS_DAEMON_TOKEN_SCOPE_POLICY` for
+  `codex-a2-cto-20260428`:
+  - read `projects/*`
+  - write `projects/*`
+- This makes the full-access policy explicit instead of relying only on
+  `AICOS_DAEMON_INTERNAL_TOKEN_LABELS`.
+
+Deploy/restart:
+
+```bash
+railway service redeploy --service aicos-pub --yes --json
+```
+
+Result:
+
+- Redeploy id: `3c0cafa9-c58e-4125-987b-3be989c2c7a0`.
+- `/health` reported `postgresql_hybrid`, PostgreSQL `active`, and pgvector
+  `active`.
+
+Final verification with `codex-a2-cto-20260428`:
+
+- Read `projects/aicos`: success.
+- Write `projects/aicos`: success.
+- Read `projects/agents-dashboard`: success.
+- Write `projects/agents-dashboard`: success.
+
 ## 2026-04-28 - Final log-only deploy verification
 
 Context:

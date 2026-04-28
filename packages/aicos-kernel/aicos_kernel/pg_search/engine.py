@@ -80,7 +80,8 @@ def direct_read_nudges(query: str) -> list[dict[str, str]]:
     ])
     current_work = _contains_any(query, [
         r"đang làm đến đâu", r"đang làm gì", r"đang làm", r"làm đến đâu",
-        r"where are we", r"what.s happening", r"current progress", r"project state",
+        r"trạng thái", r"where are we", r"what.s happening", r"current progress",
+        r"current status", r"status of", r"project state", r"workstream", r"work stream",
     ])
     coordination = _contains_any(query, [
         r"who .* doing", r"which agents", r"avoid overlap", r"stepping on",
@@ -105,6 +106,91 @@ def direct_read_nudges(query: str) -> list[dict[str, str]]:
     if not nudges:
         return []
     return nudges
+
+
+def retrieval_recipes(query: str) -> list[dict[str, Any]]:
+    """Return bounded A1 retrieval recipes for common manager/worker intents."""
+    recipes: list[dict[str, Any]] = []
+
+    def add(recipe_id: str, title: str, when: str, steps: list[dict[str, Any]]) -> None:
+        if not any(item["id"] == recipe_id for item in recipes):
+            recipes.append({"id": recipe_id, "title": title, "when": when, "steps": steps})
+
+    current_work = _contains_any(query, [
+        r"đang làm đến đâu", r"đang làm gì", r"đang làm", r"làm đến đâu",
+        r"trạng thái", r"where are we", r"what.s happening", r"current progress",
+        r"current status", r"status of", r"project state", r"workstream", r"work stream",
+    ])
+    coordination = _contains_any(query, [
+        r"who .* doing", r"which agents", r"avoid overlap", r"stepping on",
+        r"ai đang làm", r"agent.*đang", r"chồng chéo", r"dẫm chân",
+    ])
+    next_work = _contains_any(query, [
+        r"what .* next", r"next work", r"should be done next", r"việc gì tiếp",
+        r"làm gì tiếp", r"nên làm gì",
+    ])
+    takeover = _contains_any(query, [
+        r"continue", r"takeover", r"handoff", r"without stepping", r"avoid overlap",
+        r"tiếp tục", r"bàn giao", r"dẫm chân", r"chồng chéo",
+    ])
+    mcp_usage = _contains_any(query, [
+        r"\bmcp\b", r"read and write", r"ghi context", r"đọc ghi", r"feedback",
+        r"tool friction", r"cách dùng", r"sử dụng mcp",
+    ])
+    architecture = _is_strategic_review(query) or _contains_any(query, [
+        r"architecture", r"kiến trúc", r"north.?star", r"provider", r"module inventory",
+        r"semantic core", r"scalability", r"đánh giá tổng quan",
+    ])
+
+    if current_work or coordination or next_work:
+        add(
+            "manager_progress_review",
+            "Manager progress review",
+            "Use when a human asks where the project stands, who is doing what, or what should happen next.",
+            [
+                {"tool": "aicos_get_startup_bundle", "purpose": "Establish project/actor orientation and current authority boundaries."},
+                {"tool": "aicos_get_handoff_current", "purpose": "Read current continuity and active handoff notes."},
+                {"tool": "aicos_get_status_items", "arguments": {"status_filter": ["open", "blocked", "deferred"]}, "purpose": "List open work, blockers, tech debt, and decision follow-ups."},
+                {"tool": "aicos_get_project_health", "purpose": "Check active task/status counts and coordination signals."},
+                {"tool": "aicos_query_project_context", "purpose": "Only after direct reads, search for missing details by work lane or topic."},
+            ],
+        )
+    if takeover or coordination:
+        add(
+            "worker_takeover",
+            "Worker takeover / avoid overlap",
+            "Use when an A1 needs to continue work safely without stepping on another agent.",
+            [
+                {"tool": "aicos_get_handoff_current", "purpose": "Find current continuity and recent ownership hints."},
+                {"tool": "aicos_get_status_items", "arguments": {"status_filter": ["open", "blocked"]}, "purpose": "Find active items and lanes before editing."},
+                {"tool": "aicos_query_project_context", "arguments": {"context_kinds": ["task_state", "status_items", "handoff", "policy"]}, "purpose": "Search task-state and coordination policy for the specific lane."},
+                {"tool": "aicos_get_feedback_digest", "purpose": "Check recent A1 friction if the handoff looks ambiguous."},
+            ],
+        )
+    if architecture:
+        add(
+            "architecture_review",
+            "Architecture / CTO review",
+            "Use when asked to evaluate architecture, scalability, build-vs-buy, or Option C alignment.",
+            [
+                {"tool": "aicos_get_startup_bundle", "purpose": "Get current state/direction before reading long evidence."},
+                {"tool": "aicos_get_handoff_current", "purpose": "Check newest architecture handoff notes."},
+                {"tool": "aicos_query_project_context", "arguments": {"context_kinds": ["current_direction", "canonical", "evidence", "status_items"]}, "purpose": "Retrieve north-star, provider boundary, semantic core, and decision follow-up refs."},
+                {"tool": "aicos_get_status_items", "arguments": {"item_type_filter": ["decision_followup", "open_question"]}, "purpose": "Find unresolved architecture decisions."},
+            ],
+        )
+    if mcp_usage:
+        add(
+            "mcp_usage_and_feedback",
+            "MCP usage and feedback",
+            "Use when an agent needs to learn MCP read/write behavior or report AICOS friction.",
+            [
+                {"tool": "aicos_query_project_context", "arguments": {"context_kinds": ["contract", "artifacts", "policy", "status_items"]}, "purpose": "Find MCP contract, query guide, write cookbook, and feedback guidance."},
+                {"tool": "aicos_get_feedback_digest", "purpose": "Read recent friction patterns before adding duplicate feedback."},
+                {"tool": "aicos_record_feedback", "purpose": "Record no_issue or a concrete issue before session-close writes."},
+            ],
+        )
+    return recipes
 
 
 def _priority_boost(row: dict[str, Any], query: str) -> tuple[float, list[str]]:
@@ -178,6 +264,36 @@ def _priority_boost(row: dict[str, Any], query: str) -> tuple[float, list[str]]:
     return boost, signals
 
 
+def _metadata_exact_terms(query: str) -> dict[str, str]:
+    """Extract explicit metadata lookup terms from user-facing audit queries."""
+    terms: dict[str, str] = {}
+    patterns = {
+        "agent_instance_id": [
+            r"agent_instance_id\s+([A-Za-z0-9_.:-]+)",
+            r"agent instance id\s+([A-Za-z0-9_.:-]+)",
+        ],
+        "work_lane": [
+            r"work_lane\s+([A-Za-z0-9_.:-]+)",
+            r"work lane\s+([A-Za-z0-9_.:-]+)",
+        ],
+        "agent_family": [
+            r"agent_family\s+([A-Za-z0-9_.:-]+)",
+            r"agent family\s+([A-Za-z0-9_.:-]+)",
+        ],
+        "item_id": [
+            r"item_id\s+([A-Za-z0-9_.:-]+)",
+            r"item id\s+([A-Za-z0-9_.:-]+)",
+        ],
+    }
+    for key, key_patterns in patterns.items():
+        for pattern in key_patterns:
+            match = re.search(pattern, query, flags=re.IGNORECASE)
+            if match:
+                terms[key] = match.group(1).strip(".,;:!?`'\"")
+                break
+    return terms
+
+
 def _snippet(body: str, query: str) -> str:
     """Extract a short relevant excerpt from body."""
     terms = [t.lower() for t in re.findall(r"\w+", query) if len(t) >= 2]
@@ -232,6 +348,7 @@ class PgSearchEngine:
         fts_rows = self._query(query, scope, context_kinds, include_stale, max_results * 4, project_role)
         control_rows = self._control_surface_rows(query, scope, context_kinds, include_stale)
         strategic_rows = self._strategic_anchor_rows(query, scope, context_kinds, include_stale)
+        metadata_rows = self._metadata_exact_rows(query, scope, context_kinds, include_stale)
         vector_rows: list[dict[str, Any]] = []
         vector_status = "unavailable"
         if self.vector_enabled and self.embedding_client is not None and self.embedding_config is not None and self.embedding_config.enabled:
@@ -244,7 +361,7 @@ class PgSearchEngine:
         elif self.embedding_config is not None:
             vector_status = self.embedding_config.reason
 
-        results = self._fuse_and_trim(fts_rows + control_rows + strategic_rows, vector_rows, query, max_results)
+        results = self._fuse_and_trim(fts_rows + control_rows + strategic_rows + metadata_rows, vector_rows, query, max_results)
         nudges = direct_read_nudges(query)
 
         return {
@@ -262,6 +379,7 @@ class PgSearchEngine:
             "query": query,
             "context_kinds": context_kinds if context_kinds else "auto_all",
             "direct_read_nudges": nudges,
+            "retrieval_recipes": retrieval_recipes(query),
             "results": results,
             "boundary": (
                 "PostgreSQL hybrid search uses vector similarity when available, "
@@ -407,6 +525,7 @@ class PgSearchEngine:
                     freshness_label,
                     mtime,
                     role_tags,
+                    index_metadata,
                     ts_rank_cd(
                         '{_TS_WEIGHTS}',
                         search_vector,
@@ -468,6 +587,7 @@ class PgSearchEngine:
                 freshness_label,
                 mtime,
                 role_tags,
+                index_metadata,
                 (1 - (embedding <=> %s::vector)) AS vector_score
             FROM aicos_context_docs
             WHERE {where}
@@ -545,6 +665,7 @@ class PgSearchEngine:
                 freshness_label,
                 mtime,
                 role_tags,
+                index_metadata,
                 0.0 AS fts_score,
                 'control_surface' AS match_signal
             FROM aicos_context_docs
@@ -556,6 +677,57 @@ class PgSearchEngine:
             rows = [dict(zip(cols, row)) for row in cur.fetchall()]
         order = {ref: idx for idx, ref in enumerate(wanted_refs)}
         return sorted(rows, key=lambda row: order.get(str(row.get("source_ref")), 999))
+
+    def _metadata_exact_rows(
+        self,
+        query: str,
+        scope: str,
+        kinds: list[str],
+        include_stale: bool,
+    ) -> list[dict[str, Any]]:
+        """Inject rows for explicit metadata/audit lookups such as agent_instance_id."""
+        terms = _metadata_exact_terms(query)
+        if not terms:
+            return []
+
+        shared_kinds = [kind for kind in kinds if kind in {"policy", "contract", "project_registry"}]
+        where_parts = ["(scope = %s OR (scope = 'shared' AND context_kind = ANY(%s)))"]
+        params: list[Any] = [scope, shared_kinds]
+        if kinds:
+            where_parts.append("context_kind = ANY(%s)")
+            params.append(kinds)
+        for key, value in terms.items():
+            where_parts.append("index_metadata ->> %s = %s")
+            params.extend([key, value])
+        if not include_stale:
+            where_parts.append("freshness_label != 'stale'")
+            where_parts.append("NOT (context_kind = 'status_item' AND body ~* '(^|\\n)Status:\\s*(resolved|closed|stale|deferred)')")
+        params.append(12)
+        sql = f"""
+            SELECT
+                source_ref,
+                title,
+                summary,
+                body,
+                context_kind,
+                state_tag,
+                authority_level,
+                authority_mult,
+                freshness_label,
+                mtime,
+                role_tags,
+                index_metadata,
+                0.08 AS fts_score,
+                'metadata_exact' AS match_signal
+            FROM aicos_context_docs
+            WHERE {" AND ".join(where_parts)}
+            ORDER BY mtime DESC
+            LIMIT %s
+        """
+        with self.conn.cursor() as cur:
+            cur.execute(sql, params)
+            cols = [d[0] for d in cur.description]
+            return [dict(zip(cols, row)) for row in cur.fetchall()]
 
     def _strategic_anchor_rows(
         self,
@@ -627,6 +799,7 @@ class PgSearchEngine:
                 freshness_label,
                 mtime,
                 role_tags,
+                index_metadata,
                 0.0 AS fts_score,
                 'strategic_anchor' AS match_signal
             FROM aicos_context_docs
@@ -687,5 +860,33 @@ class PgSearchEngine:
                 "title":           row["title"] or row["source_ref"],
                 "summary":         _snippet(row["body"] or row["summary"] or "", query),
                 "mtime":           mtime_str,
+                "object_metadata": _result_metadata(row.get("index_metadata")),
             })
         return results
+
+
+def _result_metadata(value: Any) -> dict[str, Any]:
+    """Return compact structured metadata for agents; omit large relation arrays."""
+    if not isinstance(value, dict):
+        return {}
+    allowed = {
+        "project_id",
+        "status",
+        "item_type",
+        "item_id",
+        "task_ref",
+        "work_type",
+        "work_lane",
+        "runtime",
+        "mcp_name",
+        "agent_position",
+        "functional_role",
+        "actor_role",
+        "agent_family",
+        "agent_instance_id",
+        "coordination_status",
+        "artifact_kind",
+        "artifact_ref",
+        "last_updated_at",
+    }
+    return {key: value[key] for key in sorted(allowed) if key in value}

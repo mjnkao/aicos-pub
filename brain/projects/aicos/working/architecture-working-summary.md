@@ -59,7 +59,7 @@ Local MCP is now part of the active MVP architecture.
 - A1 should use MCP-first for AICOS-facing context/control-plane. A2-Core may
   still use direct repo access while maintaining AICOS itself.
 
-Current write contract is `mcp-v0.5-write-contract-ack`. All semantic writes
+Current write contract is `mcp-v0.6-write-contract-ack`. All semantic writes
 must include actor identity (`actor_role`, `agent_family`,
 `agent_instance_id`) and work identity (`work_type`, `work_lane`). Code work
 must include `worktree_path`.

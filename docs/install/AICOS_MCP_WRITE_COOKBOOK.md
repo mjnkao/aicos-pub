@@ -43,14 +43,38 @@ Every write payload needs this base:
 
 ```json
 {
-  "mcp_contract_ack": "mcp-v0.5-write-contract-ack",
+  "mcp_contract_ack": "mcp-v0.6-write-contract-ack",
   "scope": "projects/<project-id>",
   "actor_role": "A1",
   "agent_family": "openclaw",
   "agent_instance_id": "vm-alpha-01",
   "work_type": "ops",
   "work_lane": "telegram-pipeline",
-  "execution_context": "openclaw-vm"
+  "execution_context": "openclaw-vm",
+  "runtime_context": {
+    "runtime": "public-railway-aicos",
+    "mcp_name": "aicos_railway_public",
+    "agent_position": "external_agent",
+    "functional_role": "pipeline worker"
+  }
+}
+```
+
+If `actor_role` is `A2-Core-C` or `A2-Core-R`, also include
+`runtime_identity_map`:
+
+```json
+{
+  "runtime_identity_map": {
+    "identity_current": {
+      "runtime": "public-railway-aicos",
+      "mcp_name": "aicos_railway_public",
+      "project_scope": "projects/aicos",
+      "agent_position": "internal_agent",
+      "actor_role": "A2-Core-C",
+      "functional_role": "AICOS maintainer"
+    }
+  }
 }
 ```
 
@@ -85,7 +109,7 @@ Then fill the placeholders and pass the JSON to:
 
 ```json
 {
-  "mcp_contract_ack": "mcp-v0.5-write-contract-ack",
+  "mcp_contract_ack": "mcp-v0.6-write-contract-ack",
   "scope": "projects/sample-project",
   "actor_role": "A1",
   "agent_family": "openclaw",
@@ -106,7 +130,7 @@ Then fill the placeholders and pass the JSON to:
 
 ```json
 {
-  "mcp_contract_ack": "mcp-v0.5-write-contract-ack",
+  "mcp_contract_ack": "mcp-v0.6-write-contract-ack",
   "scope": "projects/sample-project",
   "actor_role": "A1",
   "agent_family": "openclaw",
@@ -127,7 +151,7 @@ Then fill the placeholders and pass the JSON to:
 
 ```json
 {
-  "mcp_contract_ack": "mcp-v0.5-write-contract-ack",
+  "mcp_contract_ack": "mcp-v0.6-write-contract-ack",
   "scope": "projects/aicos",
   "actor_role": "A2-Core-C",
   "agent_family": "codex",
@@ -145,7 +169,7 @@ Then fill the placeholders and pass the JSON to:
 
 ```json
 {
-  "mcp_contract_ack": "mcp-v0.5-write-contract-ack",
+  "mcp_contract_ack": "mcp-v0.6-write-contract-ack",
   "scope": "projects/aicos",
   "actor_role": "A2-Core-C",
   "agent_family": "codex",
@@ -166,7 +190,7 @@ Then fill the placeholders and pass the JSON to:
 
 ```json
 {
-  "mcp_contract_ack": "mcp-v0.5-write-contract-ack",
+  "mcp_contract_ack": "mcp-v0.6-write-contract-ack",
   "scope": "projects/aicos",
   "actor_role": "A2-Core-C",
   "agent_family": "codex",
@@ -185,7 +209,7 @@ Then fill the placeholders and pass the JSON to:
 
 ```json
 {
-  "mcp_contract_ack": "mcp-v0.5-write-contract-ack",
+  "mcp_contract_ack": "mcp-v0.6-write-contract-ack",
   "scope": "projects/aicos",
   "actor_role": "A1",
   "agent_family": "openclaw",
@@ -211,7 +235,7 @@ Example setup-friction payload for Antigravity:
 
 ```json
 {
-  "mcp_contract_ack": "mcp-v0.5-write-contract-ack",
+  "mcp_contract_ack": "mcp-v0.6-write-contract-ack",
   "scope": "projects/aicos-pub",
   "actor_role": "A1",
   "agent_family": "gemini-antigravity",
@@ -242,7 +266,7 @@ No-issue closure example:
 
 ```json
 {
-  "mcp_contract_ack": "mcp-v0.5-write-contract-ack",
+  "mcp_contract_ack": "mcp-v0.6-write-contract-ack",
   "scope": "projects/aicos",
   "actor_role": "A1",
   "agent_family": "codex",

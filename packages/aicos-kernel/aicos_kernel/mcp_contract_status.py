@@ -5,14 +5,14 @@ from typing import Any
 
 
 MCP_CONTRACT_STATUS: dict[str, Any] = {
-    "schema_version": "0.5",
-    "minimum_write_contract": "mcp-v0.5-write-contract-ack",
+    "schema_version": "0.6",
+    "minimum_write_contract": "mcp-v0.6-write-contract-ack",
     "coordination_policy_version": "2026-04-21.agent-coordination-v1",
     "write_schema_refresh_required": True,
     "write_schema_refresh_recommended": False,
     "write_contract_ack_required": True,
     "write_contract_ack_field": "mcp_contract_ack",
-    "write_contract_ack_value": "mcp-v0.5-write-contract-ack",
+    "write_contract_ack_value": "mcp-v0.6-write-contract-ack",
     "required_write_fields": [
         "mcp_contract_ack",
         "actor_role",
@@ -20,9 +20,11 @@ MCP_CONTRACT_STATUS: dict[str, Any] = {
         "agent_instance_id",
         "work_type",
         "work_lane",
+        "runtime_context",
     ],
     "conditional_required_fields": {
         "worktree_path": "required when work_type is code",
+        "runtime_identity_map": "required when actor_role begins with A2-",
     },
     "semantic_write_tools": [
         "aicos_record_checkpoint",

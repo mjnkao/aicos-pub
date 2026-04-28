@@ -44,12 +44,14 @@ For this public Railway runtime:
   make the agent an internal maintainer of the public Railway AICOS runtime;
 - keep `agent_family` as the product/client family such as `codex`,
   `claude-code`, or `openclaw`;
-- include runtime context in `execution_context` and `work_context` on writes.
+- include structured `runtime_context` on every write;
+- include `runtime_identity_map` on A2 writes.
 
 Reference:
 
 ```text
 docs/architecture/runtime-agent-identity-boundary.md
+docs/architecture/runtime-identity-schema.md
 ```
 
 ## Token Labels
@@ -213,8 +215,7 @@ Use this standard metadata on first contact:
   "agent_instance_id": "<unique-agent-id>",
   "work_type": "orientation",
   "work_lane": "intake",
-  "execution_context": "<client-runtime> via aicos_railway_public",
-  "work_context": "runtime=aicos_railway_public; agent_position=external_agent"
+  "execution_context": "<client-runtime> via aicos_railway_public"
 }
 ```
 
@@ -225,7 +226,12 @@ For write tools, include `actor_role` as runtime-relative identity:
   "actor_role": "A1",
   "agent_family": "codex",
   "execution_context": "codex-desktop via aicos_railway_public",
-  "work_context": "runtime=aicos_railway_public; agent_position=external_agent; functional_role=reviewer"
+  "runtime_context": {
+    "runtime": "public-railway-aicos",
+    "mcp_name": "aicos_railway_public",
+    "agent_position": "external_agent",
+    "functional_role": "reviewer"
+  }
 }
 ```
 

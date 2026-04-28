@@ -68,7 +68,7 @@ Active root hiện gồm:
   `work_branch` và phải có `worktree_path`, còn non-code work nên dùng
   `artifact_scope` và `artifact_refs`.
 - MCP contract/schema hiện là `0.5`
-  (`mcp-v0.5-write-contract-ack`). Agent đã cache MCP tools/schema trước thay
+  (`mcp-v0.6-write-contract-ack`). Agent đã cache MCP tools/schema trước thay
   đổi này phải refresh `tools/list` hoặc restart/re-enable AICOS MCP trước khi
   write. Contract `0.5` dùng `aicos_update_status_item` cho open items/open
   questions/tech debt/decision follow-ups và `aicos_register_artifact_ref` cho

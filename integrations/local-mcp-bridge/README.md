@@ -128,11 +128,8 @@ CLI debug surface:
 Semantic write debug surface:
 
 ```bash
-./aicos mcp write record-checkpoint '{"mcp_contract_ack":"mcp-v0.5-write-contract-ack","scope":"projects/sample-project","actor_role":"A1","agent_family":"codex","agent_instance_id":"example-codex-session","work_type":"code","work_lane":"main","work_branch":"main","checkpoint_type":"validation","summary":"Small MCP write smoke test.","status":"completed","client_request_id":"example-checkpoint"}'
-./aicos mcp write task-update '{"mcp_contract_ack":"mcp-v0.5-write-contract-ack","scope":"projects/sample-project","task_ref":"example-task","actor_role":"A1","agent_family":"codex","agent_instance_id":"example-codex-session","work_type":"code","work_lane":"main","work_branch":"main","task_status":"in_progress","what_is_done":"MCP task update smoke test recorded.","next_step":"Review generated task-state file.","client_request_id":"example-task-update"}'
-./aicos mcp write handoff-update '{"mcp_contract_ack":"mcp-v0.5-write-contract-ack","scope":"projects/sample-project","actor_role":"A1","agent_family":"codex","agent_instance_id":"example-codex-session","work_type":"code","work_lane":"main","work_branch":"main","summary":"MCP handoff update smoke test recorded.","status":"partial","next_step":"Review current handoff section.","client_request_id":"example-handoff-update"}'
-./aicos mcp write status-item '{"mcp_contract_ack":"mcp-v0.5-write-contract-ack","scope":"projects/aicos","actor_role":"A2-Core-C","agent_family":"codex","agent_instance_id":"example-codex-session","work_type":"ops","work_lane":"mcp-status-items","item_id":"example-status-item","item_type":"open_item","item_status":"open","title":"Example status item","summary":"Smoke-test structured status item update.","client_request_id":"example-status-item"}'
-./aicos mcp write artifact-ref '{"mcp_contract_ack":"mcp-v0.5-write-contract-ack","scope":"projects/aicos","actor_role":"A2-Core-C","agent_family":"codex","agent_instance_id":"example-codex-session","work_type":"ops","work_lane":"mcp-query","artifact_kind":"analysis","title":"Example artifact ref","artifact_ref":"docs/example.md","summary":"Smoke-test artifact reference registration.","client_request_id":"example-artifact-ref"}'
+./aicos mcp template checkpoint --scope projects/sample-project --actor-role A1 --runtime public-railway-aicos --mcp-name aicos_railway_public --agent-position external_agent
+./aicos mcp template status-item --scope projects/aicos --actor-role A2-Core-C --runtime public-railway-aicos --mcp-name aicos_railway_public --agent-position internal_agent --functional-role "AICOS maintainer"
 ```
 
 Stdio JSON-RPC style smoke test:

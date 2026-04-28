@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import re
+import secrets
 import shutil
 import subprocess
 import sys
@@ -815,6 +816,94 @@ def load_daemon_env_file() -> dict[str, str]:
     return values
 
 
+def write_daemon_env_file(values: dict[str, str]) -> Path:
+    path = daemon_env_file()
+    existing_order: list[str] = []
+    passthrough: list[str] = []
+    if path.exists():
+        for raw_line in path.read_text(encoding="utf-8").splitlines():
+            if raw_line.strip() and not raw_line.lstrip().startswith("#") and "=" in raw_line:
+                key = raw_line.split("=", 1)[0].strip()
+                if key and key not in existing_order:
+                    existing_order.append(key)
+            else:
+                passthrough.append(raw_line)
+    default_order = [
+        "AICOS_MCP_DAEMON_URL",
+        "AICOS_DAEMON_HOST",
+        "AICOS_DAEMON_PORT",
+        "AICOS_DAEMON_CACHE_TTL",
+        "AICOS_DAEMON_TOKEN",
+        "AICOS_DAEMON_EXTRA_TOKENS",
+        "AICOS_DAEMON_ALLOWLIST",
+        "AICOS_DAEMON_INTERNAL_TOKEN_LABELS",
+        "AICOS_DAEMON_TOKEN_SCOPE_POLICY",
+        "AICOS_DAEMON_PRIMARY_TOKEN_LABEL",
+    ]
+    order = []
+    for key in [*existing_order, *default_order, *sorted(values)]:
+        if key in values and key not in order:
+            order.append(key)
+    body = "\n".join(f"{key}={values.get(key, '')}" for key in order).rstrip() + "\n"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(body, encoding="utf-8")
+    return path
+
+
+def parse_extra_tokens(raw: str) -> dict[str, str]:
+    tokens: dict[str, str] = {}
+    for item in raw.split(","):
+        entry = item.strip()
+        if not entry or ":" not in entry:
+            continue
+        label, token = entry.split(":", 1)
+        label = label.strip()
+        token = token.strip()
+        if label and token:
+            tokens[label] = token
+    return tokens
+
+
+def render_extra_tokens(tokens: dict[str, str]) -> str:
+    return ",".join(f"{label}:{token}" for label, token in tokens.items())
+
+
+def csv_set(raw: str) -> set[str]:
+    return {item.strip() for item in raw.split(",") if item.strip()}
+
+
+def render_csv(values: set[str]) -> str:
+    return ",".join(sorted(values))
+
+
+def token_registry_path() -> Path:
+    return REPO_ROOT / ".runtime-home/aicos-daemon-token-registry.json"
+
+
+def load_token_registry() -> dict[str, Any]:
+    path = token_registry_path()
+    if not path.exists():
+        return {"updated_at": "", "entries": []}
+    try:
+        data = load_json(path)
+    except json.JSONDecodeError:
+        data = {"updated_at": "", "entries": []}
+    if not isinstance(data.get("entries"), list):
+        data["entries"] = []
+    return data
+
+
+def write_token_registry(data: dict[str, Any]) -> Path:
+    data["updated_at"] = datetime.now().astimezone().replace(microsecond=0).isoformat()
+    return write_json(token_registry_path(), data)
+
+
+def masked_token(token: str) -> str:
+    if len(token) <= 12:
+        return token[:2] + "..."
+    return token[:6] + "..." + token[-6:]
+
+
 def write_runtime_state(payload: dict[str, Any]) -> None:
     write_json(runtime_state_path(), payload)
 
@@ -1218,7 +1307,7 @@ def mcp_template(args: argparse.Namespace) -> int:
     work_lane = args.work_lane
     execution_context = args.execution_context
     payload: dict[str, Any] = {
-        "mcp_contract_ack": "mcp-v0.5-write-contract-ack",
+        "mcp_contract_ack": "mcp-v0.6-write-contract-ack",
         "scope": args.scope,
         "actor_role": args.actor_role,
         "agent_family": args.agent_family,
@@ -1226,7 +1315,24 @@ def mcp_template(args: argparse.Namespace) -> int:
         "work_type": work_type,
         "work_lane": work_lane,
         "execution_context": execution_context,
+        "runtime_context": {
+            "runtime": args.runtime,
+            "mcp_name": args.mcp_name,
+            "agent_position": args.agent_position,
+            "functional_role": args.functional_role,
+        },
     }
+    if args.actor_role.startswith("A2-"):
+        payload["runtime_identity_map"] = {
+            "identity_current": {
+                "runtime": args.runtime,
+                "mcp_name": args.mcp_name,
+                "project_scope": args.scope,
+                "agent_position": args.agent_position,
+                "actor_role": args.actor_role,
+                "functional_role": args.functional_role or "AICOS runtime maintainer",
+            }
+        }
     if work_type == "code":
         payload["worktree_path"] = args.worktree_path or "/absolute/path/to/worktree"
         payload["work_branch"] = args.work_branch or "branch-name"
@@ -1348,6 +1454,137 @@ def mcp_doctor(args: argparse.Namespace) -> int:
     }
     print(json.dumps(result, indent=2, ensure_ascii=False))
     return 0 if result["ok"] else 1
+
+
+def mcp_token_list(args: argparse.Namespace) -> int:
+    env_values = load_daemon_env_file()
+    primary_label = env_values.get("AICOS_DAEMON_PRIMARY_TOKEN_LABEL", "default") or "default"
+    tokens: list[dict[str, str]] = []
+    primary = env_values.get("AICOS_DAEMON_TOKEN", "")
+    if primary:
+        tokens.append({"label": primary_label, "token": primary, "source": "primary"})
+    for label, token in parse_extra_tokens(env_values.get("AICOS_DAEMON_EXTRA_TOKENS", "")).items():
+        tokens.append({"label": label, "token": token, "source": "extra"})
+
+    internal_labels = csv_set(env_values.get("AICOS_DAEMON_INTERNAL_TOKEN_LABELS", ""))
+    policy_raw = env_values.get("AICOS_DAEMON_TOKEN_SCOPE_POLICY", "")
+    try:
+        scope_policy = json.loads(policy_raw) if policy_raw else {}
+    except json.JSONDecodeError:
+        scope_policy = {"_parse_error": policy_raw}
+    registry = load_token_registry()
+    registry_by_label = {str(item.get("label")): item for item in registry.get("entries", []) if isinstance(item, dict)}
+
+    rows: list[dict[str, Any]] = []
+    for item in tokens:
+        label = item["label"]
+        explicit_policy = scope_policy.get(label) if isinstance(scope_policy, dict) else None
+        if explicit_policy:
+            rights = f"policy={json.dumps(explicit_policy, ensure_ascii=False)}"
+        elif label in internal_labels:
+            rights = "read=all; write=all including protected projects/aicos"
+        else:
+            rights = "read=all; write=normal project scopes; denied protected projects/aicos"
+        reg = registry_by_label.get(label, {})
+        rows.append({
+            "label": label,
+            "token": item["token"] if args.show_tokens else masked_token(item["token"]),
+            "source": item["source"],
+            "assigned_to": reg.get("assigned_to"),
+            "rights": rights,
+            "notes": reg.get("notes", ""),
+        })
+
+    if args.format == "json":
+        print(json.dumps({
+            "env_file": str(daemon_env_file()),
+            "registry": str(token_registry_path()),
+            "internal_token_labels": sorted(internal_labels),
+            "scope_policy": scope_policy,
+            "tokens": rows,
+        }, indent=2, ensure_ascii=False))
+        return 0
+
+    print("AICOS MCP tokens")
+    print(f"- env: {daemon_env_file()}")
+    print(f"- registry: {token_registry_path()}")
+    print(f"- internal labels: {', '.join(sorted(internal_labels)) or '(none)'}")
+    for row in rows:
+        print(f"- {row['label']} | {row['token']} | {row['source']} | assigned_to={row['assigned_to'] or '-'}")
+        print(f"  rights: {row['rights']}")
+        if row["notes"]:
+            print(f"  notes: {row['notes']}")
+    return 0
+
+
+def mcp_token_create(args: argparse.Namespace) -> int:
+    label = args.label.strip()
+    if not label or not re.fullmatch(r"[A-Za-z0-9_.-]+", label):
+        print("label must contain only letters, numbers, underscore, dot, or hyphen")
+        return 2
+    token = args.token.strip() if args.token else secrets.token_urlsafe(32)
+    env_values = load_daemon_env_file()
+    primary_label = env_values.get("AICOS_DAEMON_PRIMARY_TOKEN_LABEL", "default") or "default"
+    if label == primary_label and env_values.get("AICOS_DAEMON_TOKEN") and not args.force:
+        print(f"token label already exists as primary: {label}; choose another label or use --force")
+        return 2
+    extra_tokens = parse_extra_tokens(env_values.get("AICOS_DAEMON_EXTRA_TOKENS", ""))
+    if label in extra_tokens and not args.force:
+        print(f"token label already exists: {label}; use --force to replace")
+        return 2
+    extra_tokens[label] = token
+    env_values["AICOS_DAEMON_EXTRA_TOKENS"] = render_extra_tokens(extra_tokens)
+
+    internal_labels = csv_set(env_values.get("AICOS_DAEMON_INTERNAL_TOKEN_LABELS", ""))
+    if args.internal:
+        internal_labels.add(label)
+    if args.external:
+        internal_labels.discard(label)
+    env_values["AICOS_DAEMON_INTERNAL_TOKEN_LABELS"] = render_csv(internal_labels)
+
+    if args.read_scope or args.write_scope:
+        policy_raw = env_values.get("AICOS_DAEMON_TOKEN_SCOPE_POLICY", "")
+        try:
+            policy = json.loads(policy_raw) if policy_raw else {}
+        except json.JSONDecodeError:
+            print("AICOS_DAEMON_TOKEN_SCOPE_POLICY is invalid JSON; fix it before adding scoped grants")
+            return 2
+        label_policy = dict(policy.get(label, {}))
+        if args.read_scope:
+            label_policy["read"] = args.read_scope
+        if args.write_scope:
+            label_policy["write"] = args.write_scope
+        policy[label] = label_policy
+        env_values["AICOS_DAEMON_TOKEN_SCOPE_POLICY"] = json.dumps(policy, ensure_ascii=False, separators=(",", ":"))
+
+    env_path = write_daemon_env_file(env_values)
+    registry = load_token_registry()
+    entries = [item for item in registry.get("entries", []) if isinstance(item, dict) and item.get("label") != label]
+    notes = args.notes.strip()
+    if not notes:
+        notes = "AICOS maintainer access token. Access role label, not an agent family." if args.internal else "External/client access token. Not protected AICOS maintainer authority by default."
+    entries.append({
+        "label": label,
+        "token": token,
+        "assigned_to": args.assigned_to.strip() or None,
+        "notes": notes,
+    })
+    registry["entries"] = entries
+    registry_path = write_token_registry(registry)
+
+    print("Created AICOS MCP token")
+    print(f"- label: {label}")
+    print(f"- token: {token}")
+    print(f"- env: {env_path}")
+    print(f"- registry: {registry_path}")
+    print(f"- internal: {'yes' if label in internal_labels else 'no'}")
+    if args.read_scope or args.write_scope:
+        print(f"- read_scope: {args.read_scope or 'default'}")
+        print(f"- write_scope: {args.write_scope or 'default'}")
+    print("")
+    print("Restart daemon to activate:")
+    print("launchctl kickstart -k gui/$(id -u)/ai.aicos.mcp-daemon")
+    return 0
 
 
 def context_registry(args: argparse.Namespace) -> int:
@@ -1859,6 +2096,10 @@ def build_parser() -> argparse.ArgumentParser:
     mcp_template_parser.add_argument("--work-type", default="ops")
     mcp_template_parser.add_argument("--work-lane", default="intake")
     mcp_template_parser.add_argument("--execution-context", default="cli")
+    mcp_template_parser.add_argument("--runtime", default="private-local-aicos")
+    mcp_template_parser.add_argument("--mcp-name", default="aicos_local_private")
+    mcp_template_parser.add_argument("--agent-position", choices=["external_agent", "internal_agent", "human_operator", "system"], default="external_agent")
+    mcp_template_parser.add_argument("--functional-role", default="")
     mcp_template_parser.add_argument("--worktree-path", default="")
     mcp_template_parser.add_argument("--work-branch", default="")
     mcp_template_parser.set_defaults(func=mcp_template)
@@ -1867,6 +2108,23 @@ def build_parser() -> argparse.ArgumentParser:
     mcp_doctor_parser.add_argument("--daemon-url", default="http://127.0.0.1:8000")
     mcp_doctor_parser.add_argument("--token", default="")
     mcp_doctor_parser.set_defaults(func=mcp_doctor)
+    mcp_token_parser = mcp_sub.add_parser("token")
+    mcp_token_sub = mcp_token_parser.add_subparsers(dest="mcp_token_command", required=True)
+    mcp_token_create_parser = mcp_token_sub.add_parser("create")
+    mcp_token_create_parser.add_argument("label", help="Access label, e.g. antigravity-2 or a2-core-c-2.")
+    mcp_token_create_parser.add_argument("--assigned-to", default="", help="Human-readable assignment note.")
+    mcp_token_create_parser.add_argument("--notes", default="", help="Registry note.")
+    mcp_token_create_parser.add_argument("--internal", action="store_true", help="Grant protected AICOS maintainer write authority.")
+    mcp_token_create_parser.add_argument("--external", action="store_true", help="Ensure the label is not in internal maintainer labels.")
+    mcp_token_create_parser.add_argument("--read-scope", action="append", default=[], help="Explicit read scope pattern; repeatable.")
+    mcp_token_create_parser.add_argument("--write-scope", action="append", default=[], help="Explicit write scope pattern; repeatable.")
+    mcp_token_create_parser.add_argument("--token", default="", help="Use a provided token instead of generating one.")
+    mcp_token_create_parser.add_argument("--force", action="store_true", help="Replace an existing extra token label.")
+    mcp_token_create_parser.set_defaults(func=mcp_token_create)
+    mcp_token_list_parser = mcp_token_sub.add_parser("list")
+    mcp_token_list_parser.add_argument("--show-tokens", action="store_true", help="Print full tokens. Avoid sharing output.")
+    mcp_token_list_parser.add_argument("--format", choices=["text", "json"], default="text")
+    mcp_token_list_parser.set_defaults(func=mcp_token_list)
 
     compact = sub.add_parser("compact")
     compact_sub = compact.add_subparsers(dest="compact_target", required=True)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import fcntl
+import json
 import re
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -29,6 +30,7 @@ ALLOWED_TASK_STATUSES = {"planned", "in_progress", "completed", "blocked", "wait
 ALLOWED_HANDOFF_STATUSES = {"completed", "blocked", "partial", "ready_for_next"}
 ALLOWED_WORK_TYPES = {"code", "content", "design", "research", "ops", "review", "planning", "data", "mixed", "orientation"}
 ALLOWED_COORDINATION_STATUSES = {"active", "paused", "blocked", "handoff_ready", "completed"}
+ALLOWED_AGENT_POSITIONS = {"external_agent", "internal_agent", "human_operator", "system"}
 ALLOWED_STATUS_ITEM_TYPES = {"open_item", "open_question", "tech_debt", "decision_followup"}
 ALLOWED_STATUS_ITEM_STATUSES = {"open", "resolved", "closed", "stale", "deferred", "blocked"}
 ALLOWED_ARTIFACT_KINDS = {"note", "report", "diff", "output", "analysis", "contract_check", "dataset", "design", "content", "other"}
@@ -214,6 +216,122 @@ def optional_refs(payload: dict[str, Any], field: str) -> list[str]:
     return refs
 
 
+def _bounded_runtime_string(value: Any, field: str, max_len: int = 160) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise AicosMcpWriteError("missing_required_field", f"{field} is required.", {"field": field})
+    stripped = value.strip()
+    if len(stripped) > max_len:
+        raise AicosMcpWriteError("field_too_long", f"{field} is too long.", {"field": field, "max_len": max_len})
+    return stripped
+
+
+def runtime_context_value(payload: dict[str, Any]) -> dict[str, str]:
+    value = payload.get("runtime_context")
+    if not isinstance(value, dict):
+        raise AicosMcpWriteError(
+            "runtime_context_required",
+            "runtime_context is required for all MCP writes so runtime-relative A1/A2 identity is auditable.",
+            {
+                "field": "runtime_context",
+                "shape": {
+                    "runtime": "private-local-aicos|public-railway-aicos|...",
+                    "mcp_name": "aicos_local_private|aicos_railway_public|...",
+                    "agent_position": "external_agent|internal_agent|human_operator|system",
+                    "functional_role": "optional task/business role",
+                },
+            },
+        )
+    allowed = {"runtime", "mcp_name", "agent_position", "functional_role"}
+    extra = sorted(set(value) - allowed)
+    if extra:
+        raise AicosMcpWriteError("unknown_runtime_context_fields", "runtime_context has unsupported fields.", {"fields": extra, "allowed": sorted(allowed)})
+    agent_position = _bounded_runtime_string(value.get("agent_position"), "runtime_context.agent_position", max_len=60)
+    if agent_position not in ALLOWED_AGENT_POSITIONS:
+        raise AicosMcpWriteError(
+            "invalid_enum",
+            "runtime_context.agent_position is not allowed.",
+            {"field": "runtime_context.agent_position", "allowed": sorted(ALLOWED_AGENT_POSITIONS), "received": agent_position},
+        )
+    functional_role = value.get("functional_role", "")
+    if functional_role is None:
+        functional_role = ""
+    if not isinstance(functional_role, str):
+        raise AicosMcpWriteError("invalid_field_type", "runtime_context.functional_role must be a string.", {"field": "runtime_context.functional_role"})
+    return {
+        "runtime": _bounded_runtime_string(value.get("runtime"), "runtime_context.runtime"),
+        "mcp_name": _bounded_runtime_string(value.get("mcp_name"), "runtime_context.mcp_name"),
+        "agent_position": agent_position,
+        "functional_role": functional_role.strip()[:160],
+    }
+
+
+def runtime_identity_map_value(payload: dict[str, Any], actor_role: str) -> dict[str, dict[str, str]]:
+    value = payload.get("runtime_identity_map")
+    if not value:
+        if actor_role.startswith("A2-"):
+            raise AicosMcpWriteError(
+                "runtime_identity_map_required_for_a2",
+                "runtime_identity_map is required for A2 writes so cross-runtime A1/A2 identity cannot be confused.",
+                {
+                    "field": "runtime_identity_map",
+                    "example": {
+                        "identity_private": {
+                            "runtime": "private-local-aicos",
+                            "mcp_name": "aicos_local_private",
+                            "project_scope": "projects/aicos-pub",
+                            "agent_position": "external_agent",
+                            "actor_role": "A1",
+                            "functional_role": "CTO/fullstack dev of aicos-pub",
+                        },
+                        "identity_public": {
+                            "runtime": "public-railway-aicos",
+                            "mcp_name": "aicos_railway_public",
+                            "project_scope": "projects/aicos",
+                            "agent_position": "internal_agent",
+                            "actor_role": "A2-Core-C",
+                            "functional_role": "CTO/fullstack dev of public AICOS",
+                        },
+                    },
+                },
+            )
+        return {}
+    if not isinstance(value, dict):
+        raise AicosMcpWriteError("invalid_field_type", "runtime_identity_map must be an object.", {"field": "runtime_identity_map"})
+    if len(value) > 6:
+        raise AicosMcpWriteError("too_many_runtime_identities", "runtime_identity_map has too many entries.", {"field": "runtime_identity_map", "max": 6})
+    required = {"runtime", "mcp_name", "project_scope", "agent_position", "actor_role", "functional_role"}
+    result: dict[str, dict[str, str]] = {}
+    for label, entry in value.items():
+        if not isinstance(label, str) or not label.strip() or len(label.strip()) > 80:
+            raise AicosMcpWriteError("invalid_runtime_identity_label", "runtime_identity_map labels must be short non-empty strings.", {"label": label})
+        if not isinstance(entry, dict):
+            raise AicosMcpWriteError("invalid_runtime_identity_entry", "Each runtime_identity_map entry must be an object.", {"label": label})
+        missing = sorted(required - set(entry))
+        extra = sorted(set(entry) - required)
+        if missing or extra:
+            raise AicosMcpWriteError(
+                "invalid_runtime_identity_entry",
+                "runtime_identity_map entry has missing or unsupported fields.",
+                {"label": label, "missing": missing, "extra": extra, "required": sorted(required)},
+            )
+        agent_position = _bounded_runtime_string(entry.get("agent_position"), f"runtime_identity_map.{label}.agent_position", max_len=60)
+        if agent_position not in ALLOWED_AGENT_POSITIONS:
+            raise AicosMcpWriteError(
+                "invalid_enum",
+                "runtime_identity_map agent_position is not allowed.",
+                {"field": f"runtime_identity_map.{label}.agent_position", "allowed": sorted(ALLOWED_AGENT_POSITIONS), "received": agent_position},
+            )
+        result[label.strip()] = {
+            "runtime": _bounded_runtime_string(entry.get("runtime"), f"runtime_identity_map.{label}.runtime"),
+            "mcp_name": _bounded_runtime_string(entry.get("mcp_name"), f"runtime_identity_map.{label}.mcp_name"),
+            "project_scope": _bounded_runtime_string(entry.get("project_scope"), f"runtime_identity_map.{label}.project_scope"),
+            "agent_position": agent_position,
+            "actor_role": _bounded_runtime_string(entry.get("actor_role"), f"runtime_identity_map.{label}.actor_role", max_len=80),
+            "functional_role": _bounded_runtime_string(entry.get("functional_role"), f"runtime_identity_map.{label}.functional_role", max_len=200),
+        }
+    return result
+
+
 def enum_value(payload: dict[str, Any], field: str, allowed: set[str]) -> str:
     value = require_string(payload, field, max_len=80)
     if value not in allowed:
@@ -268,6 +386,22 @@ def actor_identity_block(base: dict[str, str]) -> list[str]:
         f"Legacy logical role: `{base['logical_role']}`",
         f"Work context: `{base['work_context']}`",
     ]
+    runtime_context = base.get("runtime_context")
+    if isinstance(runtime_context, dict) and runtime_context:
+        lines.extend([
+            f"Runtime: `{runtime_context.get('runtime', '')}`",
+            f"MCP name: `{runtime_context.get('mcp_name', '')}`",
+            f"Agent position: `{runtime_context.get('agent_position', '')}`",
+            f"Functional role: `{runtime_context.get('functional_role', '')}`",
+        ])
+    runtime_identity_map = base.get("runtime_identity_map")
+    if isinstance(runtime_identity_map, dict) and runtime_identity_map:
+        lines.extend([
+            "Runtime identity map:",
+            "```json",
+            json.dumps(runtime_identity_map, ensure_ascii=False, sort_keys=True, indent=2),
+            "```",
+        ])
     if base.get("submitted_actor_role") and base.get("submitted_actor_role") != base.get("actor_role"):
         lines.insert(1, f"Submitted actor role: `{base['submitted_actor_role']}`")
     return lines
@@ -287,6 +421,8 @@ def trace_metadata(tool: str, payload: dict[str, Any], target_paths: list[Path],
         "agent_display_name": payload.get("agent_display_name", ""),
         "work_type": payload.get("work_type", ""),
         "work_lane": payload.get("work_lane", ""),
+        "runtime_context": payload.get("runtime_context", {}),
+        "runtime_identity_map": payload.get("runtime_identity_map", {}),
         "coordination_status": payload.get("coordination_status", ""),
         "artifact_scope": payload.get("artifact_scope", ""),
         "work_branch": payload.get("work_branch", ""),
@@ -363,6 +499,7 @@ def require_feedback_closure(base: dict[str, str], project_root: Path) -> str:
                 "agent_instance_id": base["agent_instance_id"],
                 "work_type": base["work_type"],
                 "work_lane": base["work_lane"],
+                "runtime_context": base.get("runtime_context", {}),
                 "execution_context": base["execution_context"],
                 "feedback_type": "no_issue",
                 "severity": "low",
@@ -448,6 +585,8 @@ def base_payload(payload: dict[str, Any]) -> dict[str, Any]:
     agent_instance_id = require_string(payload, "agent_instance_id", max_len=160)
     work_type = enum_value(payload, "work_type", ALLOWED_WORK_TYPES)
     work_lane = require_string(payload, "work_lane", max_len=200)
+    runtime_context = runtime_context_value(payload)
+    runtime_identity_map = runtime_identity_map_value(payload, actor_role)
     coordination_status = optional_string(payload, "coordination_status", max_len=80) or "active"
     if coordination_status not in ALLOWED_COORDINATION_STATUSES:
         raise AicosMcpWriteError(
@@ -471,6 +610,8 @@ def base_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "agent_display_name": optional_string(payload, "agent_display_name", max_len=160) or "unknown",
         "work_type": work_type,
         "work_lane": work_lane,
+        "runtime_context": runtime_context,
+        "runtime_identity_map": runtime_identity_map,
         "coordination_status": coordination_status,
         "artifact_scope": optional_string(payload, "artifact_scope", max_len=500) or "unspecified",
         "work_branch": optional_string(payload, "work_branch", max_len=200) or "unknown",

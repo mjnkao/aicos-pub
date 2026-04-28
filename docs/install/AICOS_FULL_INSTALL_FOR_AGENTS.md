@@ -838,7 +838,7 @@ Then reload the LaunchAgent.
 
 Every MCP write must include:
 ```json
-"mcp_contract_ack": "mcp-v0.5-write-contract-ack"
+"mcp_contract_ack": "mcp-v0.6-write-contract-ack"
 ```
 
 ### PostgreSQL times out on LaunchAgent startup

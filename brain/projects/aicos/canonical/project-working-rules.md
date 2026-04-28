@@ -100,7 +100,7 @@ Ngày cập nhật: 2026-04-21.
 ## MCP Context/Control Plane Rules
 
 - Local MCP là active MVP context/control-plane surface, không phải raw file RPC.
-- Current write contract là `mcp-v0.5-write-contract-ack`.
+- Current write contract là `mcp-v0.6-write-contract-ack`.
 - Semantic writes phải có `mcp_contract_ack`, `actor_role`, `agent_family`,
   `agent_instance_id`, `work_type`, và `work_lane`.
 - `actor_role` là role lane của AICOS, ví dụ `A1`, `A2-Core-C`,

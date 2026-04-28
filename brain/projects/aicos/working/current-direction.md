@@ -15,7 +15,7 @@ Trạng thái: hướng triển khai hiện tại.
    lane. Code work phải ghi `worktree_path`; `work_branch` là metadata riêng
    cho code; content/design/research dùng `artifact_scope` và `artifact_refs`.
 8. MCP contract/schema hiện là `0.5`. Mọi semantic write phải gửi
-   `mcp_contract_ack: "mcp-v0.5-write-contract-ack"`. Agent đã cache schema cũ
+   `mcp_contract_ack: "mcp-v0.6-write-contract-ack"`. Agent đã cache schema cũ
    cần refresh `tools/list` hoặc restart/re-enable AICOS MCP trước khi write.
    Dùng `aicos_update_status_item` để đổi trạng thái open item/open question/
    tech debt/decision follow-up, `aicos_query_project_context` để query bounded

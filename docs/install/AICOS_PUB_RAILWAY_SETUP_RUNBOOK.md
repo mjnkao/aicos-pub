@@ -408,7 +408,6 @@ curl -fsS \
         "work_type": "orientation",
         "work_lane": "intake",
         "execution_context": "railway-smoke via aicos_railway_public",
-        "work_context": "runtime=aicos_railway_public; agent_position=external_agent",
         "max_results": 8
       }
     }
@@ -436,7 +435,7 @@ curl -fsS \
     "params": {
       "name": "aicos_record_feedback",
       "arguments": {
-        "mcp_contract_ack": "mcp-v0.5-write-contract-ack",
+        "mcp_contract_ack": "mcp-v0.6-write-contract-ack",
         "scope": "projects/aicos-pub",
         "agent_family": "smoke",
         "agent_instance_id": "railway-write-smoke",
@@ -444,7 +443,12 @@ curl -fsS \
         "work_type": "ops",
         "work_lane": "railway-setup-smoke",
         "execution_context": "railway-smoke via aicos_railway_public",
-        "work_context": "runtime=aicos_railway_public; agent_position=external_agent",
+        "runtime_context": {
+          "runtime": "public-railway-aicos",
+          "mcp_name": "aicos_railway_public",
+          "agent_position": "external_agent",
+          "functional_role": "railway smoke test"
+        },
         "feedback_type": "no_issue",
         "severity": "low",
         "title": "Railway write smoke",

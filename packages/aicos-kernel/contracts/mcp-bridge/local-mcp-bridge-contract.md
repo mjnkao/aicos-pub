@@ -226,14 +226,14 @@ Startup bundle also includes:
 
 ```yaml
 mcp_contract_status:
-  schema_version: "0.5"
-  minimum_write_contract: "mcp-v0.5-write-contract-ack"
+  schema_version: "0.6"
+  minimum_write_contract: "mcp-v0.6-write-contract-ack"
   coordination_policy_version: "2026-04-21.agent-coordination-v1"
   write_schema_refresh_required: true
   write_schema_refresh_recommended: false
   write_contract_ack_required: true
   write_contract_ack_field: "mcp_contract_ack"
-  write_contract_ack_value: "mcp-v0.5-write-contract-ack"
+  write_contract_ack_value: "mcp-v0.6-write-contract-ack"
   required_write_fields:
     - mcp_contract_ack
     - actor_role
@@ -241,8 +241,10 @@ mcp_contract_status:
     - agent_instance_id
     - work_type
     - work_lane
+    - runtime_context
   conditional_required_fields:
     worktree_path: "required when work_type is code"
+    runtime_identity_map: "required when actor_role begins with A2-"
   semantic_write_tools:
     - aicos_record_checkpoint
     - aicos_write_task_update
@@ -272,7 +274,7 @@ need to refresh before every write during a normal short session.
 All Phase 2 write tools require:
 
 ```yaml
-mcp_contract_ack: "mcp-v0.5-write-contract-ack"
+mcp_contract_ack: "mcp-v0.6-write-contract-ack"
 ```
 
 This field is intentionally required so stale clients using cached old write
@@ -332,13 +334,26 @@ Optional later:
 
 ```yaml
 scope: "projects/<project-id>"              # required
-mcp_contract_ack: "mcp-v0.5-write-contract-ack" # required
+mcp_contract_ack: "mcp-v0.6-write-contract-ack" # required
 actor_role: "A1|A2-Core-C|A2-Core-R|..."    # required, role lane doing the work
 agent_family: "codex|claude-code|gemini-antigravity|openclaw|..." # required
 agent_instance_id: "<unique session/agent instance id>" # required
 agent_display_name: "<human readable label>" # optional
 work_type: "code|content|design|research|ops|review|planning|data|mixed|orientation" # required
 work_lane: "<generic coordination lane>"     # required
+runtime_context:                            # required for every write
+  runtime: "<runtime receiving this MCP call>"
+  mcp_name: "<client-side MCP server alias>"
+  agent_position: "external_agent|internal_agent|human_operator|system"
+  functional_role: "<optional task/business role>"
+runtime_identity_map:                       # required for A2 writes only
+  identity_current:
+    runtime: "<runtime>"
+    mcp_name: "<mcp alias>"
+    project_scope: "projects/<project-id>"
+    agent_position: "external_agent|internal_agent|human_operator|system"
+    actor_role: "A1|A2-Core-C|A2-Core-R"
+    functional_role: "<task/business role>"
 coordination_status: "active|paused|blocked|handoff_ready|completed" # optional, default active
 artifact_scope: "<artifact or sub-scope being worked on>" # optional but recommended
 work_branch: "<git branch>"                  # optional, code-specific
@@ -363,7 +378,7 @@ notes: "<short note>"                       # optional, max 1000 chars
 ```yaml
 scope: "projects/<project-id>"              # required
 task_ref: "<task id or packet ref>"         # required
-mcp_contract_ack: "mcp-v0.5-write-contract-ack" # required
+mcp_contract_ack: "mcp-v0.6-write-contract-ack" # required
 actor_role: "A1|A2-Core-C|A2-Core-R|..."    # required, role lane doing the work
 agent_family: "codex|claude-code|gemini-antigravity|openclaw|..." # required
 agent_instance_id: "<unique session/agent instance id>" # required
@@ -400,7 +415,7 @@ MCP server instead of using handoff as a substitute.
 
 ```yaml
 scope: "projects/<project-id>"              # required
-mcp_contract_ack: "mcp-v0.5-write-contract-ack" # required
+mcp_contract_ack: "mcp-v0.6-write-contract-ack" # required
 actor_role: "A1|A2-Core-C|A2-Core-R|..."    # required, role lane doing the work
 agent_family: "codex|claude-code|gemini-antigravity|openclaw|..." # required
 agent_instance_id: "<unique session/agent instance id>" # required
@@ -429,7 +444,7 @@ notes: "<short handoff note, not detailed status-item bodies>" # optional, max 1
 
 ```yaml
 scope: "projects/<project-id>"              # required
-mcp_contract_ack: "mcp-v0.5-write-contract-ack" # required
+mcp_contract_ack: "mcp-v0.6-write-contract-ack" # required
 actor_role: "A1|A2-Core-C|A2-Core-R|..."    # required, role lane doing the work
 agent_family: "codex|claude-code|gemini-antigravity|openclaw|..." # required
 agent_instance_id: "<unique session/agent instance id>" # required
@@ -484,7 +499,7 @@ should correct obvious type mistakes before relying on filters.
 
 ```yaml
 scope: "projects/<project-id>"              # required
-mcp_contract_ack: "mcp-v0.5-write-contract-ack" # required
+mcp_contract_ack: "mcp-v0.6-write-contract-ack" # required
 actor_role: "A1|A2-Core-C|A2-Core-R|..."    # required
 agent_family: "codex|claude-code|gemini-antigravity|openclaw|..." # required
 agent_instance_id: "<unique session/agent instance id>" # required
@@ -510,7 +525,7 @@ reference and relevance summary.
 
 ```yaml
 scope: "projects/<project-id>"              # required
-mcp_contract_ack: "mcp-v0.5-write-contract-ack" # required
+mcp_contract_ack: "mcp-v0.6-write-contract-ack" # required
 actor_role: "A1|A2-Core-C|A2-Core-R|..."    # required
 agent_family: "codex|claude-code|gemini-antigravity|openclaw|..." # required
 agent_instance_id: "<unique session/agent instance id>" # required

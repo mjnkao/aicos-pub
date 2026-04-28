@@ -51,8 +51,12 @@ For MCP writes, keep these fields separate:
 - `agent_family`: client family, such as `codex`, `claude-code`, or `openclaw`.
 - `execution_context`: client plus runtime alias, such as
   `codex-desktop via aicos_railway_public`.
-- `work_context`: compact runtime and functional-role details, such as
-  `runtime=aicos_railway_public; agent_position=external_agent; functional_role=reviewer`.
+- `runtime_context`: structured runtime and functional-role details for every
+  MCP write, such as `runtime=public-railway-aicos`,
+  `mcp_name=aicos_railway_public`, `agent_position=external_agent`, and
+  `functional_role=reviewer`.
+- `runtime_identity_map`: required for A2 writes to make cross-runtime identity
+  explicit.
 
 See:
 

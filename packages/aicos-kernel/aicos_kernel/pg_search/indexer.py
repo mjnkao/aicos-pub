@@ -17,6 +17,7 @@ Usage:
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
 from datetime import datetime, timezone
@@ -201,6 +202,45 @@ _META_LINE_RE   = re.compile(
     r"^(status|project|scope|write id|written at|last updated at|priority|owner|item type|work lane|task ref|last write id|checkpoint type|feedback type|severity|artifact kind|artifact ref|opened at)\s*:",
     re.IGNORECASE,
 )
+_INDEX_SCHEMA_VERSION = 2
+_KEY_VALUE_RE = re.compile(r"^([A-Za-z][A-Za-z0-9 _/-]{1,80})\s*:\s*(.*?)\s*$")
+_CANONICAL_FIELD_NAMES = {
+    "actor family": "agent_family",
+    "actor role": "actor_role",
+    "agent family": "agent_family",
+    "agent instance id": "agent_instance_id",
+    "agent display name": "agent_display_name",
+    "artifact kind": "artifact_kind",
+    "artifact ref": "artifact_ref",
+    "artifact scope": "artifact_scope",
+    "checkpoint type": "checkpoint_type",
+    "coordination status": "coordination_status",
+    "execution context": "execution_context",
+    "feedback type": "feedback_type",
+    "item id": "item_id",
+    "item type": "item_type",
+    "last updated at": "last_updated_at",
+    "last write id": "last_write_id",
+    "logical role": "logical_role",
+    "mcp name": "mcp_name",
+    "opened at": "opened_at",
+    "project": "project",
+    "agent position": "agent_position",
+    "scope": "scope",
+    "severity": "severity",
+    "status": "status",
+    "task ref": "task_ref",
+    "title": "title",
+    "work branch": "work_branch",
+    "work context": "work_context",
+    "work lane": "work_lane",
+    "work type": "work_type",
+    "worktree path": "worktree_path",
+    "functional role": "functional_role",
+    "runtime": "runtime",
+    "write id": "write_id",
+    "written at": "written_at",
+}
 
 
 def _parse_markdown(text: str) -> tuple[str, str, str]:
@@ -255,6 +295,91 @@ def _parse_markdown(text: str) -> tuple[str, str, str]:
         summary = first_paragraph_from(0)
 
     return title, summary, body
+
+
+def _clean_field_value(value: str) -> str:
+    value = value.strip()
+    if value.startswith("`") and value.endswith("`") and len(value) >= 2:
+        value = value[1:-1]
+    return value.strip()
+
+
+def _field_key(raw_key: str) -> str | None:
+    key = raw_key.strip().lower().replace("-", " ")
+    key = re.sub(r"\s+", " ", key)
+    return _CANONICAL_FIELD_NAMES.get(key)
+
+
+def _section_text(body: str, heading: str) -> str:
+    pattern = re.compile(rf"^##\s+{re.escape(heading)}\s*$\n(.*?)(?=\n##\s+|\Z)", re.MULTILINE | re.DOTALL | re.IGNORECASE)
+    match = pattern.search(body)
+    if not match:
+        return ""
+    return match.group(1).strip()
+
+
+def _extract_trace_refs(body: str) -> list[str]:
+    refs: list[str] = []
+    for section_name in ("Trace Refs", "Trace refs", "Source References"):
+        section = _section_text(body, section_name)
+        if not section:
+            continue
+        for raw in section.splitlines():
+            line = raw.strip()
+            if not line.startswith("-"):
+                continue
+            for ref in re.findall(r"`([^`]+)`", line):
+                if ref and ref not in refs:
+                    refs.append(ref)
+            if "`" not in line:
+                cleaned = line.lstrip("-").strip()
+                if cleaned and cleaned.lower() != "none" and cleaned not in refs:
+                    refs.append(cleaned)
+    return refs[:20]
+
+
+def _extract_index_metadata(body: str, meta: dict[str, Any], title: str) -> dict[str, Any]:
+    """Project AICOS markdown into structured search metadata.
+
+    This is a derived index projection. Markdown remains the durable truth.
+    """
+    fields: dict[str, Any] = {
+        "index_schema_version": _INDEX_SCHEMA_VERSION,
+        "source_ref": meta["source_ref"],
+        "scope": meta["scope"],
+        "context_kind": meta["context_kind"],
+        "state_tag": meta["state_tag"],
+        "authority_level": meta["authority_level"],
+        "title": title,
+    }
+    project_match = re.match(r"^projects/([^/]+)$", str(meta["scope"]))
+    if project_match:
+        fields["project_id"] = project_match.group(1)
+
+    for raw in body.splitlines()[:160]:
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        match = _KEY_VALUE_RE.match(line)
+        if not match:
+            continue
+        key = _field_key(match.group(1))
+        if not key:
+            continue
+        value = _clean_field_value(match.group(2))
+        if value and value.lower() != "unknown":
+            fields[key] = value
+
+    trace_refs = _extract_trace_refs(body)
+    if trace_refs:
+        fields["trace_refs"] = trace_refs
+
+    if "Status:" in body and "status" not in fields:
+        match = re.search(r"^Status:\s*(.+)$", body, re.MULTILINE)
+        if match:
+            fields["status"] = _clean_field_value(match.group(1))
+
+    return {key: value for key, value in fields.items() if value not in ("", [], None)}
 
 
 def _content_hash(text: str) -> str:
@@ -378,16 +503,17 @@ class BrainIndexer:
         # Skip if unchanged
         with self.conn.cursor() as cur:
             cur.execute(
-                "SELECT content_hash FROM aicos_context_docs WHERE source_ref = %s",
+                "SELECT content_hash, index_schema_version FROM aicos_context_docs WHERE source_ref = %s",
                 (meta["source_ref"],),
             )
             row = cur.fetchone()
-            if row and row[0] == chash:
+            if row and row[0] == chash and int(row[1] or 0) >= _INDEX_SCHEMA_VERSION:
                 if not with_embeddings:
                     return False
                 return self._ensure_embedding(meta["source_ref"], chash)
 
         title, summary, body = _parse_markdown(text)
+        index_metadata = _extract_index_metadata(body, meta, title)
         mtime_ts = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
         freshness = _freshness(mtime_ts, meta["state_tag"])
 
@@ -397,9 +523,10 @@ class BrainIndexer:
                 INSERT INTO aicos_context_docs
                   (scope, context_kind, state_tag, authority_level, authority_mult,
                    role_tags, source_ref, title, summary, body,
-                   mtime, freshness_label, content_hash, indexed_at)
+                   mtime, freshness_label, index_metadata, index_schema_version,
+                   content_hash, indexed_at)
                 VALUES
-                  (%s,%s,%s,%s,%s, %s,%s,%s,%s,%s, %s,%s,%s, now())
+                  (%s,%s,%s,%s,%s, %s,%s,%s,%s,%s, %s,%s,%s::jsonb,%s,%s, now())
                 ON CONFLICT (source_ref) DO UPDATE SET
                   scope           = EXCLUDED.scope,
                   context_kind    = EXCLUDED.context_kind,
@@ -412,6 +539,8 @@ class BrainIndexer:
                   body            = EXCLUDED.body,
                   mtime           = EXCLUDED.mtime,
                   freshness_label = EXCLUDED.freshness_label,
+                  index_metadata  = EXCLUDED.index_metadata,
+                  index_schema_version = EXCLUDED.index_schema_version,
                   content_hash    = EXCLUDED.content_hash,
                   indexed_at      = now()
                 """,
@@ -420,7 +549,8 @@ class BrainIndexer:
                     meta["authority_level"], meta["authority_mult"],
                     meta["role_tags"], meta["source_ref"],
                     title, summary, body,
-                    mtime_ts, freshness, chash,
+                    mtime_ts, freshness, json.dumps(index_metadata, ensure_ascii=False),
+                    _INDEX_SCHEMA_VERSION, chash,
                 ),
             )
         self.conn.commit()
@@ -642,6 +772,7 @@ class BrainIndexer:
             "embedding_coverage": embedding_coverage,
             "missing_or_stale_embeddings": missing_or_stale_embeddings,
             "embedding_columns": has_embedding_columns,
+            "index_schema_version": _INDEX_SCHEMA_VERSION,
             "stale_docs": stale_docs,
             "breakdown": [{"scope": r[0], "kind": r[1], "count": r[2]} for r in rows],
         }

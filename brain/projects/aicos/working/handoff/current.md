@@ -95,7 +95,7 @@ cho `projects/aicos`.
   theo `item_id` ổn định thay vì append handoff section gây noise. Startup
   bundle expose `active_status_items` và `recent_status_items`.
 - MCP contract/schema currently is `0.5`
-  (`mcp-v0.5-write-contract-ack`). Any agent that cached MCP tools before this
+  (`mcp-v0.6-write-contract-ack`). Any agent that cached MCP tools before this
   change should refresh `tools/list` or restart/re-enable AICOS MCP before
   writing.
 - MCP query now has three tiers: HTTP daemon + PostgreSQL hybrid search with

@@ -454,7 +454,7 @@ preflight before every write during a normal short session.
 Current write contract acknowledgment:
 
 ```yaml
-mcp_contract_ack: "mcp-v0.5-write-contract-ack"
+mcp_contract_ack: "mcp-v0.6-write-contract-ack"
 ```
 
 Every MCP write must include this field. If a write fails with

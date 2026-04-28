@@ -47,7 +47,7 @@ Local MCP bridge hiện là active MVP surface, không còn chỉ là ý tưởn
   `aicos_record_checkpoint`, `aicos_write_task_update`,
   `aicos_write_handoff_update`, `aicos_update_status_item`,
   `aicos_register_artifact_ref`.
-- Current write contract: `mcp-v0.5-write-contract-ack`.
+- Current write contract: `mcp-v0.6-write-contract-ack`.
 - Startup bundle exposes:
   `active_task_state`, `recent_completed_task_state`, `active_status_items`,
   `recent_status_items`, and `continuity_signal`.

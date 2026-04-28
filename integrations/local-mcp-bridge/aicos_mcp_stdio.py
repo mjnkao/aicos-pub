@@ -392,6 +392,54 @@ WRITE_TOOL_NAMES = {
 }
 
 
+RUNTIME_CONTEXT_SCHEMA = {
+    "type": "object",
+    "description": "Required lightweight runtime identity for this MCP call. A1 agents normally only need this object.",
+    "properties": {
+        "runtime": {
+            "type": "string",
+            "description": "AICOS runtime receiving this MCP call, e.g. private-local-aicos or public-railway-aicos.",
+        },
+        "mcp_name": {
+            "type": "string",
+            "description": "Client-side MCP server alias, e.g. aicos_local_private or aicos_railway_public.",
+        },
+        "agent_position": {
+            "type": "string",
+            "enum": ["external_agent", "internal_agent", "human_operator", "system"],
+            "description": "Position relative to the runtime receiving this call.",
+        },
+        "functional_role": {
+            "type": "string",
+            "description": "Task/business role for this write, e.g. reviewer, CTO/fullstack dev, runtime maintainer.",
+        },
+    },
+    "required": ["runtime", "mcp_name", "agent_position"],
+    "additionalProperties": False,
+}
+
+RUNTIME_IDENTITY_ENTRY_SCHEMA = {
+    "type": "object",
+    "description": "One runtime-relative identity entry for A2/cross-runtime work.",
+    "properties": {
+        "runtime": {"type": "string"},
+        "mcp_name": {"type": "string"},
+        "project_scope": {"type": "string"},
+        "agent_position": {"type": "string", "enum": ["external_agent", "internal_agent", "human_operator", "system"]},
+        "actor_role": {"type": "string"},
+        "functional_role": {"type": "string"},
+    },
+    "required": ["runtime", "mcp_name", "project_scope", "agent_position", "actor_role", "functional_role"],
+    "additionalProperties": False,
+}
+
+RUNTIME_IDENTITY_MAP_SCHEMA = {
+    "type": "object",
+    "description": "Required for A2 writes. Map each relevant runtime label to its runtime-relative identity, e.g. identity_private and identity_public.",
+    "additionalProperties": RUNTIME_IDENTITY_ENTRY_SCHEMA,
+}
+
+
 for tool in TOOLS:
     if tool["name"] not in WRITE_TOOL_NAMES:
         continue
@@ -404,8 +452,12 @@ for tool in TOOLS:
             "tools/list or restart/re-enable the AICOS MCP server before writing."
         ),
     }
+    schema["properties"]["runtime_context"] = RUNTIME_CONTEXT_SCHEMA
+    schema["properties"]["runtime_identity_map"] = RUNTIME_IDENTITY_MAP_SCHEMA
     if "mcp_contract_ack" not in schema["required"]:
         schema["required"] = ["mcp_contract_ack", *schema["required"]]
+    if "runtime_context" not in schema["required"]:
+        schema["required"].append("runtime_context")
 
 
 READ_TOOL_NAMES = {

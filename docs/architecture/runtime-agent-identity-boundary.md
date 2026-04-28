@@ -39,12 +39,16 @@ Keep these dimensions separate:
 
 | Dimension | Field | Examples | Meaning |
 |---|---|---|---|
-| Runtime | `execution_context`, `work_context` | `aicos_railway_public`, `aicos_local_private` | Which AICOS runtime and client context received the call |
+| Runtime | `runtime_context.runtime`, `runtime_context.mcp_name` | `public-railway-aicos`, `aicos_railway_public` | Which AICOS runtime and MCP alias received the call |
 | AICOS actor role | `actor_role` | `A1`, `A2-Core-C`, `A2-Core-R` | Actor class relative to that runtime |
 | Agent family | `agent_family` | `codex`, `claude-code`, `openclaw` | Product/client family; never use this for A1/A2 authority |
 | Agent instance | `agent_instance_id` | `codex-runtime-identity-proposal-20260428` | Unique thread/session/worker id |
-| Project functional role | `work_context` or task text | `CTO`, `fullstack dev`, `reviewer` | Business/task role for the current work |
+| Project functional role | `runtime_context.functional_role` | `CTO`, `fullstack dev`, `reviewer` | Business/task role for the current work |
 | Token label | deployment config | `codex-agent-01`, `codex-a2-core-public-railway` | Access subject used by the runtime auth policy |
+
+The official write schema is defined in
+`docs/architecture/runtime-identity-schema.md`. Free-form `work_context`
+may remain as a legacy note, but it does not replace `runtime_context`.
 
 ## Public Railway Examples
 
@@ -57,7 +61,12 @@ Public agent writing feedback to public-export operations:
   "agent_family": "codex",
   "agent_instance_id": "codex-public-export-review-001",
   "execution_context": "codex-desktop via aicos_railway_public",
-  "work_context": "runtime=aicos_railway_public; agent_position=external_agent; functional_role=reviewer"
+  "runtime_context": {
+    "runtime": "public-railway-aicos",
+    "mcp_name": "aicos_railway_public",
+    "agent_position": "external_agent",
+    "functional_role": "reviewer"
+  }
 }
 ```
 
@@ -70,7 +79,22 @@ Codex maintaining the public Railway AICOS runtime itself:
   "agent_family": "codex",
   "agent_instance_id": "codex-public-core-maintainer-001",
   "execution_context": "codex-desktop via aicos_railway_public",
-  "work_context": "runtime=aicos_railway_public; agent_position=internal_agent; functional_role=runtime maintainer"
+  "runtime_context": {
+    "runtime": "public-railway-aicos",
+    "mcp_name": "aicos_railway_public",
+    "agent_position": "internal_agent",
+    "functional_role": "runtime maintainer"
+  },
+  "runtime_identity_map": {
+    "identity_public": {
+      "runtime": "public-railway-aicos",
+      "mcp_name": "aicos_railway_public",
+      "project_scope": "projects/aicos",
+      "agent_position": "internal_agent",
+      "actor_role": "A2-Core-C",
+      "functional_role": "runtime maintainer"
+    }
+  }
 }
 ```
 
@@ -83,7 +107,22 @@ Codex maintaining private/local AICOS:
   "agent_family": "codex",
   "agent_instance_id": "codex-private-core-maintainer-001",
   "execution_context": "codex-desktop via aicos_local_private",
-  "work_context": "runtime=aicos_local_private; agent_position=internal_agent; functional_role=AICOS maintainer"
+  "runtime_context": {
+    "runtime": "private-local-aicos",
+    "mcp_name": "aicos_local_private",
+    "agent_position": "internal_agent",
+    "functional_role": "AICOS maintainer"
+  },
+  "runtime_identity_map": {
+    "identity_private": {
+      "runtime": "private-local-aicos",
+      "mcp_name": "aicos_local_private",
+      "project_scope": "projects/aicos",
+      "agent_position": "internal_agent",
+      "actor_role": "A2-Core-C",
+      "functional_role": "AICOS maintainer"
+    }
+  }
 }
 ```
 
@@ -110,8 +149,8 @@ unless the surrounding config clearly states which runtime they point to.
 
 Do not rename the public Railway core scope from `projects/aicos` just to solve
 identity confusion. Scope names identify project context. Runtime identity
-should be carried by MCP server alias, execution context, work context, and
-token label.
+should be carried by `runtime_context`, `runtime_identity_map` for A2 writes,
+MCP server alias, execution context, and token label.
 
 For the current public deployment:
 
@@ -132,4 +171,3 @@ Protected write access should come from token policy:
 - private/local maintainer tokens may write private AICOS maintenance scopes.
 
 Do not infer internal authority from `agent_family=codex`.
-

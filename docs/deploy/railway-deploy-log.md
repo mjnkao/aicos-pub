@@ -955,6 +955,64 @@ Final verification with `claude-agent-01`:
 - `aicos_record_feedback` succeeded with `scope=agents-dashboard`, and the
   write was recorded under normalized `scope=projects/agents-dashboard`.
 
+## 2026-04-28 - Restrict public/A1 tokens from AICOS core reads and writes
+
+Context:
+
+- Public/A1 agents should not read or write `projects/aicos`, because core
+  AICOS runtime/architecture context can confuse project agents that only need
+  dashboard/template/public-export context.
+- Earlier policies blocked `projects/aicos` writes but still allowed broad
+  reads through `projects/*`.
+
+Actions:
+
+- Updated Railway `AICOS_DAEMON_TOKEN_SCOPE_POLICY` for public/A1 labels:
+  - `huy-1`
+  - `huy-2`
+  - `vinh-1`
+  - `vinh-2`
+  - `claude-agent-01`
+  - `codex-agent-01`
+  - `openclaw-agent-01`
+  - `codex-a2-core-pub`
+  - `codex-test`
+  - `openclaw-test`
+  - `community-test`
+- Read and write scopes are now limited to:
+  - `projects/aicos-pub`
+  - `projects/aicos-pub/*`
+  - `projects/templates`
+  - `projects/templates/*`
+  - `projects/agents-dashboard`
+  - `projects/agents-dashboard/*`
+  - `projects/agents-pm-dashboard`
+  - `projects/agents-pm-dashboard/*`
+- `projects/aicos` is excluded from both read and write for those labels.
+- Internal maintainer label `codex-a2-cto-20260428` remains available for A2
+  core maintenance.
+
+Deploy/restart:
+
+```bash
+railway service redeploy --service aicos-pub --yes --json
+```
+
+Result:
+
+- Redeploy id: `0b2a50bc-4a12-4fc1-ab3e-bc762f1b3b88`.
+- Initial post-redeploy health repeated the known PostgreSQL schema lock
+  timeout and fell back to `markdown_direct`.
+- `railway service restart --service aicos-pub --yes --json` restored
+  `postgresql_hybrid`.
+
+Final verification:
+
+- `claude-agent-01` can read and write `projects/agents-dashboard`.
+- `claude-agent-01` is denied for both read and write on `projects/aicos`.
+- `codex-agent-01` can read and write `projects/agents-dashboard`.
+- `codex-agent-01` is denied for both read and write on `projects/aicos`.
+
 ## 2026-04-28 - Final log-only deploy verification
 
 Context:

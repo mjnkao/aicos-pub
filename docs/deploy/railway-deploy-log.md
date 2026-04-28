@@ -292,3 +292,42 @@ Current parity state:
   Railway `aicos-pub` service, keep `AICOS_EMBEDDINGS=auto`, redeploy/restart,
   then verify `search_engine: postgresql_hybrid` or query metadata showing
   active vector results after embeddings are indexed.
+
+### 2026-04-28 Railway OpenAI embedding env handoff
+
+Added files:
+
+- `docs/deploy/railway-embedding.env.example`
+- `scripts/aicos-railway-apply-embedding-env`
+
+Local-only secret file:
+
+- `.runtime-home/railway-embedding.env`
+- This file is ignored by git through `.runtime-home/`.
+
+Setup flow:
+
+```bash
+cp docs/deploy/railway-embedding.env.example .runtime-home/railway-embedding.env
+$EDITOR .runtime-home/railway-embedding.env
+scripts/aicos-railway-apply-embedding-env
+railway up --ci --message "Enable OpenAI embeddings for aicos-pub"
+```
+
+The apply script:
+
+- Refuses to run if `OPENAI_API_KEY` is missing or still the placeholder.
+- Sends `OPENAI_API_KEY` through `railway variable set --stdin` so the key is
+  not printed.
+- Sets `AICOS_EMBEDDINGS=auto`.
+- Sets `AICOS_EMBEDDING_MODEL=text-embedding-3-small`.
+- Sets `AICOS_EMBEDDING_DIMENSIONS=1536`.
+- Sets `AICOS_EMBEDDING_BATCH_SIZE=32`.
+
+Expected verification after deploy:
+
+- `/health` should report `search_status.embeddings: enabled`.
+- Initial `embedding_index` may show `pending` while indexing.
+- After reindex completes, `embedded_docs` should rise above `0`.
+- Query metadata should report `engine: postgresql_hybrid` when vector rows are
+  returned.

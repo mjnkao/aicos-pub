@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+env_file="${1:-$repo_root/.runtime-home/railway-embedding.env}"
+service="${RAILWAY_SERVICE:-aicos-pub}"
+
+if [[ ! -f "$env_file" ]]; then
+  echo "Embedding env file not found: $env_file" >&2
+  echo "Copy docs/deploy/railway-embedding.env.example to .runtime-home/railway-embedding.env and fill OPENAI_API_KEY." >&2
+  exit 2
+fi
+
+get_env_value() {
+  local key="$1"
+  awk -F= -v key="$key" '
+    $0 ~ "^[[:space:]]*#" { next }
+    $1 == key {
+      sub("^[^=]*=", "")
+      print
+      exit
+    }
+  ' "$env_file"
+}
+
+openai_key="$(get_env_value OPENAI_API_KEY)"
+if [[ -z "$openai_key" || "$openai_key" == "<paste-openai-api-key-here>" ]]; then
+  echo "OPENAI_API_KEY is missing or still set to the placeholder in $env_file." >&2
+  exit 2
+fi
+
+embedding_mode="$(get_env_value AICOS_EMBEDDINGS)"
+embedding_model="$(get_env_value AICOS_EMBEDDING_MODEL)"
+embedding_dimensions="$(get_env_value AICOS_EMBEDDING_DIMENSIONS)"
+embedding_batch_size="$(get_env_value AICOS_EMBEDDING_BATCH_SIZE)"
+
+printf "%s" "$openai_key" | railway variable set --service "$service" OPENAI_API_KEY --stdin --skip-deploys >/dev/null
+railway variable set --service "$service" "AICOS_EMBEDDINGS=${embedding_mode:-auto}" --skip-deploys >/dev/null
+railway variable set --service "$service" "AICOS_EMBEDDING_MODEL=${embedding_model:-text-embedding-3-small}" --skip-deploys >/dev/null
+railway variable set --service "$service" "AICOS_EMBEDDING_DIMENSIONS=${embedding_dimensions:-1536}" --skip-deploys >/dev/null
+railway variable set --service "$service" "AICOS_EMBEDDING_BATCH_SIZE=${embedding_batch_size:-32}" --skip-deploys >/dev/null
+
+echo "Applied Railway embedding variables to service '$service' without printing secrets."

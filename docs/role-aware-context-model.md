@@ -11,6 +11,15 @@ and domain-specific roles.
 Each role needs different context during onboarding, continuation, search, and
 task execution.
 
+There is a second boundary: A1/A2 is also relative to the AICOS runtime that
+receives the MCP call. The same Codex session can be an external `A1` when it
+talks to a private/local AICOS runtime about the `projects/aicos-pub` export
+project, and an internal `A2-Core-C` when it talks to the public Railway AICOS
+runtime to maintain that public runtime.
+
+Do not treat `A1`, `A2`, `Codex`, `Claude`, or `OpenClaw` as one global actor
+identity across every runtime.
+
 ## Direction
 
 AICOS should provide a role-aware context/query surface that accepts:
@@ -33,3 +42,20 @@ aicos_search_project_context(project_id, project_role, query, filters?)
 
 The API should still preserve AICOS authority boundaries and scrub/private-data
 policy.
+
+## Runtime Identity Rule
+
+For MCP writes, keep these fields separate:
+
+- `actor_role`: AICOS actor class relative to the current runtime.
+- `agent_family`: client family, such as `codex`, `claude-code`, or `openclaw`.
+- `execution_context`: client plus runtime alias, such as
+  `codex-desktop via aicos_railway_public`.
+- `work_context`: compact runtime and functional-role details, such as
+  `runtime=aicos_railway_public; agent_position=external_agent; functional_role=reviewer`.
+
+See:
+
+```text
+docs/architecture/runtime-agent-identity-boundary.md
+```

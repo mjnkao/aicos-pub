@@ -18,6 +18,40 @@ https://aicos-pub-production.up.railway.app/health
 The service requires bearer auth. Unauthenticated health and MCP calls return
 `401`.
 
+## Runtime Identity Boundary
+
+Use the MCP server alias:
+
+```text
+aicos_railway_public
+```
+
+This distinguishes the public Railway runtime from a private/local AICOS
+runtime such as:
+
+```text
+aicos_local_private
+```
+
+`actor_role` is relative to the runtime receiving the MCP call. It is not a
+global identity for Codex, Claude, or OpenClaw across every AICOS deployment.
+
+For this public Railway runtime:
+
+- use `actor_role: "A1"` when the agent is an external/public work agent
+  writing feedback, status, or handoff into `projects/aicos-pub`;
+- use `actor_role: "A2-Core-C"` only when the token and assignment explicitly
+  make the agent an internal maintainer of the public Railway AICOS runtime;
+- keep `agent_family` as the product/client family such as `codex`,
+  `claude-code`, or `openclaw`;
+- include runtime context in `execution_context` and `work_context` on writes.
+
+Reference:
+
+```text
+docs/architecture/runtime-agent-identity-boundary.md
+```
+
 ## Token Labels
 
 Current dedicated agent token labels:
@@ -127,7 +161,7 @@ Use Streamable HTTP transport with a bearer header:
 ```json
 {
   "mcpServers": {
-    "aicos-pub-railway": {
+    "aicos_railway_public": {
       "type": "http",
       "url": "https://aicos-pub-production.up.railway.app/mcp",
       "headers": {
@@ -179,7 +213,19 @@ Use this standard metadata on first contact:
   "agent_instance_id": "<unique-agent-id>",
   "work_type": "orientation",
   "work_lane": "intake",
-  "execution_context": "<client-runtime>"
+  "execution_context": "<client-runtime> via aicos_railway_public",
+  "work_context": "runtime=aicos_railway_public; agent_position=external_agent"
+}
+```
+
+For write tools, include `actor_role` as runtime-relative identity:
+
+```json
+{
+  "actor_role": "A1",
+  "agent_family": "codex",
+  "execution_context": "codex-desktop via aicos_railway_public",
+  "work_context": "runtime=aicos_railway_public; agent_position=external_agent; functional_role=reviewer"
 }
 ```
 

@@ -56,6 +56,12 @@ git status --short --branch
 - Public/community tokens may write only to `projects/aicos-pub`.
 - Do not grant public/community tokens internal maintainer access.
 - Do not write public-export continuity into private `projects/aicos`.
+- Treat `actor_role` as runtime-relative. A Codex session can be `A1`
+  relative to private/local AICOS while working on public export, and
+  `A2-Core-C` relative to the public Railway AICOS runtime when explicitly
+  maintaining that runtime.
+- Use explicit MCP aliases: `aicos_local_private` for the private/local runtime
+  and `aicos_railway_public` for this public Railway runtime.
 
 ## Railway Files In The Repo
 
@@ -67,6 +73,7 @@ nixpacks.toml
 scripts/aicos-railway-start
 scripts/aicos-railway-apply-embedding-env
 docs/deploy/railway-embedding.env.example
+docs/architecture/runtime-agent-identity-boundary.md
 docs/install/AICOS_PUB_RAILWAY_AGENT_CONNECT.md
 ```
 
@@ -197,7 +204,7 @@ Use one token label per agent/client. Recommended labels:
 codex-agent-01
 claude-agent-01
 openclaw-agent-01
-codex-a2-core-pub
+codex-a2-core-public-railway
 ```
 
 Recommended policy for public agents:
@@ -207,11 +214,14 @@ Recommended policy for public agents:
   "codex-agent-01": {"read": ["projects/*"], "write": ["projects/aicos-pub"]},
   "claude-agent-01": {"read": ["projects/*"], "write": ["projects/aicos-pub"]},
   "openclaw-agent-01": {"read": ["projects/*"], "write": ["projects/aicos-pub"]},
-  "codex-a2-core-pub": {"read": ["projects/*"], "write": ["projects/aicos-pub"]}
+  "codex-a2-core-public-railway": {"read": ["projects/*"], "write": ["projects/aicos-pub"]}
 }
 ```
 
 Do not add these public labels to `AICOS_DAEMON_INTERNAL_TOKEN_LABELS`.
+
+`codex-a2-core-public-railway` is named for audit clarity. Grant broader write
+scope only if this public runtime truly needs an internal maintainer token.
 
 Generate tokens locally:
 
@@ -397,7 +407,8 @@ curl -fsS \
         "agent_instance_id": "railway-smoke",
         "work_type": "orientation",
         "work_lane": "intake",
-        "execution_context": "railway-smoke",
+        "execution_context": "railway-smoke via aicos_railway_public",
+        "work_context": "runtime=aicos_railway_public; agent_position=external_agent",
         "max_results": 8
       }
     }
@@ -432,7 +443,8 @@ curl -fsS \
         "actor_role": "A1",
         "work_type": "ops",
         "work_lane": "railway-setup-smoke",
-        "execution_context": "railway-smoke",
+        "execution_context": "railway-smoke via aicos_railway_public",
+        "work_context": "runtime=aicos_railway_public; agent_position=external_agent",
         "feedback_type": "no_issue",
         "severity": "low",
         "title": "Railway write smoke",
@@ -455,29 +467,29 @@ scope: projects/aicos-pub
 Add a Codex MCP server in `<codex-home>/config.toml`:
 
 ```toml
-[mcp_servers.aicos_pub]
+[mcp_servers.aicos_railway_public]
 enabled = true
 url = "https://aicos-pub-production.up.railway.app/mcp"
 
-[mcp_servers.aicos_pub.http_headers]
+[mcp_servers.aicos_railway_public.http_headers]
 Authorization = "Bearer <agent-token>"
 
-[mcp_servers.aicos_pub.tools.aicos_get_project_health]
+[mcp_servers.aicos_railway_public.tools.aicos_get_project_health]
 approval_mode = "approve"
 
-[mcp_servers.aicos_pub.tools.aicos_get_handoff_current]
+[mcp_servers.aicos_railway_public.tools.aicos_get_handoff_current]
 approval_mode = "approve"
 
-[mcp_servers.aicos_pub.tools.aicos_get_startup_bundle]
+[mcp_servers.aicos_railway_public.tools.aicos_get_startup_bundle]
 approval_mode = "approve"
 
-[mcp_servers.aicos_pub.tools.aicos_query_project_context]
+[mcp_servers.aicos_railway_public.tools.aicos_query_project_context]
 approval_mode = "approve"
 
-[mcp_servers.aicos_pub.tools.aicos_write_handoff_update]
+[mcp_servers.aicos_railway_public.tools.aicos_write_handoff_update]
 approval_mode = "approve"
 
-[mcp_servers.aicos_pub.tools.aicos_record_feedback]
+[mcp_servers.aicos_railway_public.tools.aicos_record_feedback]
 approval_mode = "approve"
 ```
 
@@ -486,8 +498,8 @@ Restart Codex/Codex Desktop after editing config.
 Recommended naming:
 
 ```text
-aicos_pub  -> Railway public MCP
-aicos_http -> local/private AICOS MCP
+aicos_railway_public  -> Railway public MCP
+aicos_local_private  -> local/private AICOS MCP
 ```
 
 ## 12. Claude Code Setup
@@ -495,7 +507,7 @@ aicos_http -> local/private AICOS MCP
 Claude Code supports remote HTTP MCP with bearer headers:
 
 ```bash
-claude mcp add --transport http aicos-pub \
+claude mcp add --transport http aicos_railway_public \
   https://aicos-pub-production.up.railway.app/mcp \
   --scope local \
   --header "Authorization: Bearer <agent-token>"
@@ -504,7 +516,7 @@ claude mcp add --transport http aicos-pub \
 Fallback:
 
 ```bash
-claude mcp add-json aicos-pub \
+claude mcp add-json aicos_railway_public \
   '{"type":"http","url":"https://aicos-pub-production.up.railway.app/mcp","headers":{"Authorization":"Bearer <agent-token>"}}' \
   --scope local
 ```
@@ -513,7 +525,7 @@ Verify:
 
 ```bash
 claude mcp list
-claude mcp get aicos-pub
+claude mcp get aicos_railway_public
 ```
 
 ## 13. Claude Desktop Connector
@@ -534,7 +546,7 @@ python3 integrations/mcp-daemon/aicos_https_proxy.py \
 In Claude Desktop custom connector:
 
 ```text
-Name: aicos-pub
+Name: aicos_railway_public
 Remote MCP server URL: https://localhost:8443/mcp
 OAuth Client ID: blank
 OAuth Client Secret: blank

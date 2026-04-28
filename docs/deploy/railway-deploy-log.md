@@ -523,3 +523,86 @@ Final verification:
 - MCP `tools/list` returned 17 tools with `codex-a2-core-pub`.
 - MCP `aicos_record_feedback` successfully wrote to
   `brain/projects/aicos-pub/working/feedback/20260428t101817z-8057b9bc4a.md`.
+
+### 2026-04-28 Sync A2 runtime identity and retrieval updates
+
+Context:
+
+- A2 updated private AICOS with runtime identity schema v0.6 and retrieval
+  evaluation/runtime improvements.
+- Private local MCP handoff for `projects/aicos-pub` indicated the proposal was
+  accepted for A2 review/implementation.
+
+Public-export pipeline fixes needed during sync:
+
+- `scripts/aicos-retrieval-eval` has no file extension, so placeholder
+  transforms did not originally rewrite private project markers inside it.
+- `.gitignore` intentionally contains local tool-state directories, so scrub
+  should not treat `.gitignore` as leaked tool residue.
+- `aicos-daemon.env.example` is an env example file, so placeholder transforms
+  must include `*.env.example`.
+
+Fixes applied in private `public-export/sync-aicos-pub.sh`:
+
+- Added `aicos-retrieval-eval` to transformed files.
+- Added `*.env.example` to transformed files.
+- Allowed `scan_regex` to accept extra `rg` flags.
+- Excluded `.gitignore` from the local tool residue marker scan.
+
+Sync result:
+
+- Export scan passed.
+- Public verification passed:
+  - `./aicos --help`
+  - Python compile for kernel, daemon, and local MCP bridge modules
+  - public sensitive marker scan
+- Public-only Railway setup guides were restored after sync because private
+  `docs/install/` does not yet carry them.
+- Commit pushed: `83ea5cf`.
+
+Notable exported changes:
+
+- Runtime identity schema v0.6 status and feedback records.
+- New `mcp_tool_definitions.py` and `mcp_tool_schema.py`.
+- Retrieval eval token fallback and two-project regression gate updates.
+- Additional retrieval and module inventory research/status notes.
+- PostgreSQL schema/search metadata improvements.
+
+Deploy:
+
+```bash
+railway up --ci --message "Sync A2 runtime identity and retrieval updates"
+```
+
+Result:
+
+- Build succeeded.
+- Deploy succeeded.
+- Deployment id: `88b4626b-4a34-4d44-98f8-4e4c3fa5579d`.
+
+Known issue repeated:
+
+- First post-deploy health check reported `search_engine: markdown_direct`.
+- PostgreSQL status reported `schema failed: canceling statement due to lock timeout`.
+
+Fix:
+
+```bash
+railway service restart --service aicos-pub --yes --json
+```
+
+Final verification:
+
+- `/health` reported `search_engine: postgresql_hybrid`.
+- `search_status.postgresql: active`.
+- `search_status.vector: pgvector active`.
+- `search_status.embeddings: enabled`.
+- `embedding_index: completed`.
+- `total_docs: 187`.
+- `embedded_docs: 187`.
+- `embedding_coverage: 1.0`.
+- Project breakdown included `projects/aicos` with 166 docs and
+  `projects/aicos-pub` with 5 docs.
+- MCP `tools/list` returned 17 tools.
+- MCP query for runtime identity schema returned `postgresql_hybrid` with
+  `vector_status: active` and vector-ranked runtime identity refs.

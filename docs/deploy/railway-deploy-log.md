@@ -331,3 +331,87 @@ Expected verification after deploy:
 - After reindex completes, `embedded_docs` should rise above `0`.
 - Query metadata should report `engine: postgresql_hybrid` when vector rows are
   returned.
+
+### 2026-04-28 Railway OpenAI embedding deploy
+
+Actions:
+
+- Filled local ignored file `.runtime-home/railway-embedding.env` with
+  `OPENAI_API_KEY`.
+- Applied embedding variables without printing secrets:
+
+```bash
+scripts/aicos-railway-apply-embedding-env
+```
+
+- Deployed:
+
+```bash
+railway up --ci --message "Enable OpenAI embeddings for aicos-pub"
+```
+
+Result:
+
+- Build succeeded.
+- Deploy succeeded.
+- Deployment id: `1fc6e8ba-a672-405f-a767-727adabed321`
+
+Issue after first container start:
+
+```text
+PostgreSQL unavailable (Schema apply failed: canceling statement due to lock timeout)
+```
+
+Observed health response:
+
+- `search_engine: markdown_direct`
+- `search_status.postgresql: schema failed: canceling statement due to lock timeout`
+- `search_status.vector: not_initialized`
+- `search_status.embeddings: not_initialized`
+
+Fix:
+
+```bash
+railway service restart --service aicos-pub --yes --json
+```
+
+Result after restart:
+
+- PostgreSQL recovered without code changes.
+- `/health` reported `search_engine: postgresql_hybrid`.
+- `search_status.postgresql: active`.
+- `search_status.vector: pgvector active`.
+- `search_status.embeddings: enabled`.
+- Initial `embedding_index: running`.
+
+Final embedding verification:
+
+- `embedding_index: completed`.
+- `total_docs: 170`.
+- `embedded_docs: 170`.
+- `missing_or_stale_embeddings: 0`.
+- `embedding_coverage: 1.0`.
+- `embedding_errors: 0`.
+
+MCP query verification:
+
+- Query: `current AICOS status and next tasks`.
+- Tool: `aicos_query_project_context`.
+- Scope: `projects/aicos`.
+- Query metadata reported `engine: postgresql_hybrid`.
+- Query metadata reported `vector_status: active`.
+- Returned results included `match_signals` with `vector`, including
+  `brain/projects/aicos/working/current-state.md`,
+  `brain/projects/aicos/working/architecture-working-summary.md`,
+  `brain/projects/aicos/working/issue-map.md`,
+  `brain/projects/aicos/working/current-milestones.md`, and related working
+  context refs.
+
+Current parity state:
+
+- Railway `aicos-pub` now matches the local AICOS retrieval mode for the public
+  exported corpus: PostgreSQL + pgvector + OpenAI embeddings +
+  `postgresql_hybrid`.
+- Remaining expected difference from private local AICOS is corpus size/content:
+  Railway public export indexed 170 docs, while private local AICOS may index
+  additional private docs.

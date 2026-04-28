@@ -201,6 +201,26 @@ def _operation_authorized(token_label: str, operation: str, scope: str, policy: 
     return True, "default_write_allowed", {"token_label": label, "operation": operation, "scope": scope}
 
 
+def _normalize_tool_scope(arguments: dict[str, Any]) -> None:
+    """Accept common client project-id shapes and convert them to AICOS scopes."""
+    raw_scope = arguments.get("scope")
+    if (raw_scope is None or raw_scope == "") and isinstance(arguments.get("project_slug"), str):
+        raw_scope = arguments["project_slug"]
+    if not isinstance(raw_scope, str):
+        return
+    scope = raw_scope.strip()
+    if not scope:
+        return
+    if scope.startswith("projects/"):
+        arguments["scope"] = scope
+        return
+    if "/" in scope:
+        return
+    project_root = REPO_ROOT / "brain/projects" / scope
+    if project_root.exists():
+        arguments["scope"] = f"projects/{scope}"
+
+
 def _audit_log_path() -> Path:
     raw = os.environ.get("AICOS_DAEMON_AUDIT_LOG", "").strip()
     if raw:
@@ -800,6 +820,7 @@ def handle(message: dict[str, Any], cache: ResponseCache | None = None, *, token
             return _error_response(msg_id, -32602, "Missing tool name")
         if not isinstance(arguments, dict):
             return _error_response(msg_id, -32602, "Tool arguments must be an object")
+        _normalize_tool_scope(arguments)
 
         try:
             if name in READ_TOOL_NAMES:

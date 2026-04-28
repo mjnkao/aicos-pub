@@ -865,6 +865,55 @@ Final verification:
 - `huy-1` successfully wrote feedback to `projects/agents-dashboard`.
 - `huy-1` was denied when attempting to write protected `projects/aicos`.
 
+## 2026-04-28 - Explicit dashboard write policy for older agent tokens
+
+Context:
+
+- Claude Code was using the older `claude-agent-01` token rather than one of
+  the new Huy/Vinh labels and still reported that write scope was not open for
+  `projects/agents-dashboard`.
+- Codex/other older public-agent labels could hit the same ambiguity.
+
+Actions:
+
+- Updated Railway `AICOS_DAEMON_TOKEN_SCOPE_POLICY` to give explicit non-core
+  dashboard/template write scopes to:
+  - `claude-agent-01`
+  - `codex-agent-01`
+  - `openclaw-agent-01`
+  - `codex-a2-core-pub`
+  - `codex-test`
+  - `openclaw-test`
+  - `community-test`
+- Explicit write scopes:
+  - `projects/aicos-pub`
+  - `projects/templates`
+  - `projects/agents-dashboard`
+  - `projects/agents-dashboard/*`
+  - `projects/agents-pm-dashboard`
+  - `projects/agents-pm-dashboard/*`
+- Kept protected `projects/aicos` excluded.
+
+Deploy/restart:
+
+```bash
+railway service redeploy --service aicos-pub --yes --json
+```
+
+Result:
+
+- Redeploy id: `bb59d63d-df4a-4443-9ea5-fa2ab5fc002f`.
+- Initial post-redeploy health repeated the known PostgreSQL schema lock
+  timeout and fell back to `markdown_direct`.
+- `railway service restart --service aicos-pub --yes --json` restored
+  `postgresql_hybrid`.
+
+Final verification:
+
+- `claude-agent-01` successfully wrote feedback to `projects/agents-dashboard`.
+- `codex-agent-01` successfully wrote feedback to `projects/agents-dashboard`.
+- Both labels were denied when attempting to write protected `projects/aicos`.
+
 ## 2026-04-28 - Final log-only deploy verification
 
 Context:

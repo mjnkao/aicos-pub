@@ -91,3 +91,45 @@ Fix:
 
 - Removed `healthcheckPath` from `railway.toml` for the first public deploy.
   Runtime verification should use an authenticated smoke request after deploy.
+
+### 2026-04-28 Railway project setup
+
+Actions:
+
+- Created Railway project `aicos-pub`.
+- Created Railway service `aicos-pub`.
+- Set `AICOS_DAEMON_TOKEN` through `railway variable set --stdin` so the token
+  was not printed to terminal output.
+- Pushed initial GitHub commit `c80f8df`.
+
+### 2026-04-28 Railway deploy attempt 1
+
+Command:
+
+```bash
+railway up --ci --message "Initial aicos-pub Railway deploy"
+```
+
+Result:
+
+- Build failed during Nixpacks install.
+
+Error excerpt:
+
+```text
+error: error in 'egg_base' option: 'packages/aicos-kernel' does not exist or is not a directory
+```
+
+Cause:
+
+- Nixpacks detected `pyproject.toml` and generated an install phase that copied
+  only `pyproject.toml` into `/app` before running `pip install .`.
+- The package uses `package-dir = {"": "packages/aicos-kernel"}`, so the build
+  metadata references a directory that had not been copied yet.
+
+Fix:
+
+- Added `nixpacks.toml` to override the install phase.
+- The Railway build now creates `/opt/venv` and installs only
+  `psycopg2-binary`; the daemon runs directly from repository source via
+  `scripts/aicos-railway-start`.

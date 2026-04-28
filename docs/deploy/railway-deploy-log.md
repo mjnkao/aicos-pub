@@ -415,3 +415,49 @@ Current parity state:
 - Remaining expected difference from private local AICOS is corpus size/content:
   Railway public export indexed 170 docs, while private local AICOS may index
   additional private docs.
+
+### 2026-04-28 Railway agent bearer tokens
+
+Actions:
+
+- Added three dedicated Railway bearer token labels:
+  `codex-agent-01`, `claude-agent-01`, and `openclaw-agent-01`.
+- Preserved existing test token labels.
+- Updated `AICOS_DAEMON_EXTRA_TOKENS` on Railway.
+- Updated `AICOS_DAEMON_TOKEN_SCOPE_POLICY` so the new labels may read
+  `projects/*` and write only `projects/aicos-pub`.
+- Wrote local-only token values to `.runtime-home/aicos-pub-agent-tokens.md`.
+  This path is ignored by git and must not be committed.
+- Added public connection guide:
+  `docs/install/AICOS_PUB_RAILWAY_AGENT_CONNECT.md`.
+
+Issue:
+
+- `railway service restart` did not immediately expose the new token labels in
+  `/health`; the running deployment still reported only the old labels.
+
+Fix:
+
+- Ran `railway service redeploy --service aicos-pub --yes --json`.
+- Waited until deployment `b631379f-2251-4be0-99d4-540e84fbaaba` became
+  `SUCCESS`.
+- The redeployed container saw the new labels.
+
+Second issue:
+
+- The redeployed container again hit the known PostgreSQL schema lock timeout
+  and temporarily fell back to `markdown_direct`.
+
+Fix:
+
+- Ran `railway service restart --service aicos-pub --yes --json`.
+- Retested with `codex-agent-01`.
+
+Final verification:
+
+- New token authenticated successfully.
+- `/health` reported accepted token labels including `codex-agent-01`,
+  `claude-agent-01`, and `openclaw-agent-01`.
+- `/health` reported `search_engine: postgresql_hybrid`.
+- `/health` reported `search_status.embeddings: enabled`.
+- `/health` reported `index.embedding_coverage: 1.0`.

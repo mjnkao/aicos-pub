@@ -133,3 +133,52 @@ Fix:
 - The Railway build now creates `/opt/venv` and installs only
   `psycopg2-binary`; the daemon runs directly from repository source via
   `scripts/aicos-railway-start`.
+
+### 2026-04-28 Railway deploy attempt 2
+
+Command:
+
+```bash
+railway up --ci --message "Fix Nixpacks config for aicos-pub"
+```
+
+Result:
+
+- Build succeeded.
+- Deploy succeeded.
+- Deployment id: `7fa1bfb5-6dff-45fa-aecf-7d6314af44f6`
+- Railway domain: `https://aicos-pub-production.up.railway.app`
+
+Runtime logs:
+
+```text
+PostgreSQL disabled via --no-pg flag
+AICOS MCP daemon started
+health: http://0.0.0.0:8080/health
+```
+
+Smoke tests:
+
+- Unauthenticated `/health` returned `401`, expected for token-protected public
+  deploy.
+- Authenticated `/health` returned `status: ok`, `search_engine:
+  markdown_direct`, and `auth: token_required`.
+- Authenticated MCP `aicos_get_project_health` for `projects/aicos` returned
+  the exported public continuity state with `active_status_item_count: 23`,
+  `blocked_status_item_count: 0`, `active_task_count: 0`, and
+  `recent_feedback_count: 5`.
+
+Current gap:
+
+- First Railway deploy intentionally runs with `--no-pg`, so search is
+  markdown-direct fallback rather than PostgreSQL hybrid/pgvector. This proves
+  the public package can boot and serve MCP state, but it is not yet equivalent
+  to the private AICOS runtime when that runtime has PostgreSQL hybrid search
+  enabled.
+
+Follow-up:
+
+- Add a Railway PostgreSQL service and switch from `--no-pg` to
+  `AICOS_PG_DSN`-backed hybrid search.
+- Decide whether to expose unauthenticated `/health` with a minimal public
+  payload, or keep authenticated health and avoid Railway healthcheckPath.

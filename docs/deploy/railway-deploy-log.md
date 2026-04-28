@@ -182,3 +182,113 @@ Follow-up:
   `AICOS_PG_DSN`-backed hybrid search.
 - Decide whether to expose unauthenticated `/health` with a minimal public
   payload, or keep authenticated health and avoid Railway healthcheckPath.
+
+### 2026-04-28 Railway PostgreSQL/pgvector setup
+
+Actions:
+
+- Added Railway PostgreSQL service:
+
+```bash
+railway add --database postgres --json
+```
+
+- Railway created service `Postgres` with service id
+  `e6b0325f-19b5-4705-a4b3-e54c67efa9bc`.
+- Postgres image: `ghcr.io/railwayapp-templates/postgres-ssl:18`.
+- Postgres volume: `postgres-volume`, mounted at
+  `/var/lib/postgresql/data`, 4.9 GB quota.
+- Updated `scripts/aicos-railway-start` so Railway starts PostgreSQL mode when
+  either `AICOS_PG_DSN` or `DATABASE_URL` is present, and falls back to
+  `--no-pg` only when no DSN is configured.
+
+Variables configured on service `aicos-pub`:
+
+```bash
+railway variable set --service aicos-pub 'AICOS_PG_DSN=${{Postgres.DATABASE_URL}}' --skip-deploys
+railway variable set --service aicos-pub AICOS_DAEMON_EXTRA_TOKENS=<redacted> --skip-deploys
+railway variable set --service aicos-pub 'AICOS_DAEMON_TOKEN_SCOPE_POLICY=<redacted-json>' --skip-deploys
+railway variable set --service aicos-pub 'AICOS_EMBEDDINGS=auto' --skip-deploys
+```
+
+Token policy:
+
+- Created three extra labeled bearer tokens: `codex-test`, `openclaw-test`,
+  and `community-test`.
+- Token values were generated with `openssl rand -hex 24` and were not printed
+  into logs.
+- Extra tokens may read `projects/*` and may write only `projects/aicos-pub`.
+- No token was added to `AICOS_DAEMON_INTERNAL_TOKEN_LABELS`, so protected
+  writes to `projects/aicos` remain blocked for public/test clients.
+
+Issue during variable setup:
+
+```text
+Failed to fetch: error sending request for url (https://backboard.railway.com/graphql/v2)
+operation timed out
+```
+
+Fix:
+
+- Re-ran verification with `railway variable list --service aicos-pub --kv`
+  and confirmed these variables exist: `AICOS_PG_DSN`,
+  `AICOS_DAEMON_EXTRA_TOKENS`, `AICOS_DAEMON_TOKEN_SCOPE_POLICY`, and
+  `AICOS_EMBEDDINGS`.
+
+OpenAI embedding key:
+
+- Local shell did not have `OPENAI_API_KEY`, so no key was copied to Railway.
+- With `AICOS_EMBEDDINGS=auto`, AICOS will enable vector embedding search after
+  `OPENAI_API_KEY` is added and the service is redeployed or restarted.
+
+Deploy command:
+
+```bash
+railway up --ci --message "Enable Railway PostgreSQL for aicos-pub"
+```
+
+Result:
+
+- Build succeeded.
+- Deploy succeeded.
+- Deployment id: `9217ed17-07ce-45db-bc86-f8ecc290cf6e`
+- Railway domain: `https://aicos-pub-production.up.railway.app`
+
+Runtime logs:
+
+```text
+Starting Container
+08:34:14 [INFO] aicos-daemon: Connecting to PostgreSQL...
+08:34:16 [INFO] aicos-daemon:   auth     : token required
+08:34:16 [INFO] aicos-daemon:   internal token labels: (none)
+08:34:16 [INFO] aicos-daemon:   token scope policy labels: codex-test, community-test, openclaw-test
+```
+
+Smoke tests:
+
+- Unauthenticated `/health` returned `401`, expected for token-protected public
+  deploy.
+- Authenticated `/health` returned `status: ok`.
+- Authenticated `/health` reported `search_engine: postgresql_fts`.
+- `search_status.postgresql` reported `active`.
+- `search_status.vector` reported `pgvector active`.
+- `search_status.embeddings` reported `OPENAI_API_KEY not set`.
+- `index.total_docs` reported `170`.
+- `index.embedding_columns` reported `true`.
+- `index.embedded_docs` reported `0`.
+- Authenticated MCP `tools/list` returned tool schemas.
+- Authenticated MCP `aicos_query_project_context` for `projects/aicos`
+  returned results through engine `postgresql_fts`.
+- The `community-test` extra bearer token successfully authenticated against
+  `/health`.
+
+Current parity state:
+
+- AICOS public Railway runtime now boots with Railway PostgreSQL and pgvector
+  schema support.
+- It is not yet full PostgreSQL hybrid/vector parity with a private AICOS
+  runtime that has embeddings enabled, because `OPENAI_API_KEY` is not set.
+- Expected next step for full hybrid parity: set `OPENAI_API_KEY` on the
+  Railway `aicos-pub` service, keep `AICOS_EMBEDDINGS=auto`, redeploy/restart,
+  then verify `search_engine: postgresql_hybrid` or query metadata showing
+  active vector results after embeddings are indexed.

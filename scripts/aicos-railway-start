@@ -5,15 +5,25 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 port="${PORT:-8000}"
 cache_ttl="${AICOS_DAEMON_CACHE_TTL:-30}"
 python_bin="${PYTHON:-python3}"
+pg_dsn="${AICOS_PG_DSN:-${DATABASE_URL:-}}"
 
 if [[ -z "${AICOS_DAEMON_TOKEN:-}" ]]; then
   echo "AICOS_DAEMON_TOKEN is required for Railway/public deploy." >&2
   exit 2
 fi
 
-exec "$python_bin" "$repo_root/integrations/mcp-daemon/aicos_mcp_daemon.py" \
-  --host "0.0.0.0" \
-  --port "$port" \
-  --cache-ttl "$cache_ttl" \
-  --token "$AICOS_DAEMON_TOKEN" \
-  --no-pg
+args=(
+  "$repo_root/integrations/mcp-daemon/aicos_mcp_daemon.py"
+  --host "0.0.0.0"
+  --port "$port"
+  --cache-ttl "$cache_ttl"
+  --token "$AICOS_DAEMON_TOKEN"
+)
+
+if [[ -n "$pg_dsn" ]]; then
+  export AICOS_PG_DSN="$pg_dsn"
+else
+  args+=(--no-pg)
+fi
+
+exec "$python_bin" "${args[@]}"

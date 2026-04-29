@@ -17,6 +17,55 @@ from a private source checkout through the public-export pipeline, then curated
 so external agents and humans can understand the current architecture,
 unfinished work, and next direction.
 
+## Core Painpoints
+
+AICOS exists because multi-agent project work breaks down in operationally
+specific ways. The hard problem is not simply storing more knowledge; it is
+keeping current project reality usable when many agents, humans, threads,
+branches, worktrees, and tools are active at once.
+
+The recurring painpoints are:
+
+- Current truth ambiguity: agents and humans cannot reliably tell which note is
+  current, which file is authority, and which material is only evidence,
+  history, or reference.
+- Ownership ambiguity: teams lose track of which agent is doing what, which
+  lane is active, which worktree or branch is occupied, and whether a handoff
+  is real or merely implied.
+- Startup/read overload: every new agent or thread risks reading too much,
+  reading stale material, or missing the one current rule/state file that
+  matters.
+- Writeback ambiguity: agents do not know whether an update should become a
+  handoff, checkpoint, status item, feedback, evidence note, artifact ref, or a
+  change in the external project repo.
+- Continuity breakdown: work often loses its "why", owner, next step, and
+  trusted current state when it moves across agents, threads, or tools.
+- Search without authority: retrieval can find documents, but it does not by
+  itself answer which result is authoritative, current, safe to act on, or
+  relevant to the active lane.
+
+## Who AICOS Serves
+
+AICOS directly serves the people and agents who need to operate inside shared
+project reality:
+
+- A1 work agents: coding, content, design, research, ops, review, and hybrid
+  workers using AICOS for context, handoff, status, and writeback.
+- A2 system agents: AICOS maintainers, architecture/runtime/policy agents, and
+  service agents improving the control-plane itself.
+- Human operators: founders, leads, managers, coordinators, project owners, and
+  reviewers who need to know what is true, what is active, and what should
+  happen next.
+
+AICOS indirectly serves:
+
+- Projects, by reducing lost context, duplicated work, stale handoffs, and
+  unclear ownership.
+- Teams and companies, by lowering coordination cost across many projects,
+  agent families, work lanes, and runtime environments.
+- End users and customers, because delivery quality improves when fewer
+  decisions, blockers, and next steps are lost in coordination.
+
 ## Current Direction
 
 AICOS is moving toward **Option C**:

@@ -28,6 +28,7 @@ WRITE_TOOL_NAMES: set[str] = {
     "aicos_update_status_item",
     "aicos_register_artifact_ref",
     "aicos_record_feedback",
+    "aicos_propose_project",
 }
 
 READ_IDENTITY_REQUIRED = ["agent_family", "agent_instance_id", "work_type", "work_lane", "execution_context"]

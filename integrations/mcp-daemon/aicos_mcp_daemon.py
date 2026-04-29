@@ -45,6 +45,7 @@ sys.path.insert(0, str(REPO_ROOT / "packages/aicos-kernel"))
 
 from aicos_kernel.mcp_cache import ResponseCache  # noqa: E402
 from aicos_kernel.mcp_read_serving import AicosMcpReadError, dispatch_read_surface  # noqa: E402
+from aicos_kernel.paths import brain_path  # noqa: E402
 from aicos_kernel.mcp_tool_definitions import build_tools  # noqa: E402
 from aicos_kernel.mcp_tool_schema import READ_IDENTITY_REQUIRED, READ_TOOL_NAMES, WORK_TYPE_ENUM, WRITE_TOOL_NAMES, apply_aicos_tool_schema_extensions  # noqa: E402
 from aicos_kernel.mcp_write_serving import AicosMcpWriteError, dispatch_write_tool  # noqa: E402
@@ -202,23 +203,27 @@ def _operation_authorized(token_label: str, operation: str, scope: str, policy: 
 
 
 def _normalize_tool_scope(arguments: dict[str, Any]) -> None:
-    """Accept common client project-id shapes and convert them to AICOS scopes."""
-    raw_scope = arguments.get("scope")
-    if (raw_scope is None or raw_scope == "") and isinstance(arguments.get("project_slug"), str):
-        raw_scope = arguments["project_slug"]
-    if not isinstance(raw_scope, str):
-        return
-    scope = raw_scope.strip()
-    if not scope:
-        return
+    """Accept compact project identifiers in client payloads.
+
+    Some MCP clients expose short free-form fields more naturally than exact
+    AICOS scopes. Normalize those forms before authorization so token policy
+    checks and read/write dispatch see the same canonical scope.
+    """
+    scope = str(arguments.get("scope", "")).strip()
     if scope.startswith("projects/"):
-        arguments["scope"] = scope
         return
-    if "/" in scope:
+
+    project_slug = str(arguments.get("project_slug", "")).strip()
+    candidate = project_slug or scope
+    if not candidate:
         return
-    project_root = REPO_ROOT / "brain/projects" / scope
-    if project_root.exists():
-        arguments["scope"] = f"projects/{scope}"
+
+    candidate = candidate.removeprefix("brain/projects/").removeprefix("projects/").strip("/")
+    if not candidate or "/" in candidate:
+        return
+
+    if brain_path("projects", candidate).exists():
+        arguments["scope"] = f"projects/{candidate}"
 
 
 def _audit_log_path() -> Path:
@@ -431,7 +436,7 @@ def _scope_reindex_root(scope: str) -> Path | None:
     if not scope.startswith("projects/") or scope.count("/") != 1:
         return None
     project_id = scope.removeprefix("projects/")
-    root = REPO_ROOT / "brain" / "projects" / project_id
+    root = brain_path("projects", project_id)
     return root if root.exists() else None
 
 

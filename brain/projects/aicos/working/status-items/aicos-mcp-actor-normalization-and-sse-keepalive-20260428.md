@@ -45,7 +45,8 @@ Ask Antigravity and other clients to reconnect or refresh tools/list so they dro
 
 ## Trace Refs
 
-- source_ref: `codex-thread-20260428-actor-sse-fix`
+- session_refs:
+  - `codex-thread-20260428-actor-sse-fix`
 
 ## Boundary
 

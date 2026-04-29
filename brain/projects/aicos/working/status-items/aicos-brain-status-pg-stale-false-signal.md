@@ -1,21 +1,21 @@
 # Status Item: AICOS-BRAIN-STATUS-PG-STALE-FALSE-SIGNAL
 
-Status: open
+Status: resolved
 Item type: `tech_debt`
 Type guidance: Known existing issue, friction, missing validation/coverage/docs, stale behavior, cleanup, or quality gap.
 Project: `aicos`
 Scope: `projects/aicos`
 Item id: `AICOS-BRAIN-STATUS-PG-STALE-FALSE-SIGNAL`
 Title: brain status can report PG index stale while daemon health and query are healthy
-Last write id: `phase-1-pg-status-false-stale-20260428`
-Last updated at: `2026-04-28T05:46:35+00:00`
+Last write id: `20260428T120647Z-b030b95f30`
+Last updated at: `2026-04-28T12:06:47+00:00`
 
 ## Actor Identity
 
 Actor role: `A2-Core-C`
 Agent family: `codex`
-Agent instance id: `codex-thread-2026-04-28-phase-1-module-inventory`
-Agent display name: `unknown`
+Agent instance id: `codex-thread-20260428-p0-stabilization`
+Agent display name: `Codex Desktop`
 Work type: `ops`
 Work lane: `aicos-runtime-provider-hygiene`
 Coordination status: `active`
@@ -26,10 +26,27 @@ Execution context: `codex-desktop`
 Legacy actor family: `codex`
 Legacy logical role: `A2-Core-C`
 Work context: ``
+Runtime: `private-local-aicos`
+MCP name: `aicos_http`
+Agent position: `internal_agent`
+Functional role: `AICOS maintainer`
+Runtime identity map:
+```json
+{
+  "identity_private": {
+    "actor_role": "A2-Core-C",
+    "agent_position": "internal_agent",
+    "functional_role": "AICOS maintainer",
+    "mcp_name": "aicos_http",
+    "project_scope": "projects/aicos",
+    "runtime": "private-local-aicos"
+  }
+}
+```
 
 ## Summary
 
-After Phase 1 text-only sync and daemon reindex, ./aicos brain status still reported PG index stale, while /health showed search_engine=postgresql_hybrid, stale_docs=0, embedding coverage=1.0, and query returned the new Phase 1 note.
+Resolved by changing brain status freshness to prefer PG latest_source_mtime for index freshness and missing_or_stale_embeddings for embedding freshness. Verified ./aicos brain status now reports GBrain sync success/fresh (full), PG index available/fresh, embedding freshness fresh, coverage 1.0, missing/stale embeddings 0.
 
 ## Item Type Guidance
 
@@ -37,15 +54,15 @@ Known existing issue, friction, missing validation/coverage/docs, stale behavior
 
 ## Reason
 
-Status/monitor freshness logic should not create false alarms for A1/A2 operators. This is observability debt, not a confirmed retrieval outage.
+The previous timestamp-only comparison could produce false stale alarms after rapid write/reindex cycles even when PG had seen the latest source files.
 
 ## Next Step
 
-In a focused ops pass, align CLI brain status freshness with daemon health/index row state instead of relying on a misleading timestamp comparison.
+Keep closed unless brain status again disagrees with daemon health or retrieval behavior.
 
 ## Trace Refs
 
-- source_ref: `brain/projects/aicos/evidence/research/aicos-phase-1-module-inventory-20260428.md`
+- source_ref: `packages/aicos-kernel/aicos_kernel/kernel.py`
 
 ## Boundary
 

@@ -33,6 +33,7 @@ MCP_CONTRACT_STATUS: dict[str, Any] = {
         "aicos_update_status_item",
         "aicos_register_artifact_ref",
         "aicos_record_feedback",
+        "aicos_propose_project",
     ],
     "semantic_read_tools": [
         "aicos_get_startup_bundle",

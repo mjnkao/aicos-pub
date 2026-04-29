@@ -9,6 +9,8 @@ from pathlib import Path
 class TraceRefs:
     source_refs: tuple[str, ...] = ()
     artifact_refs: tuple[str, ...] = ()
+    scope_refs: tuple[str, ...] = ()
+    session_refs: tuple[str, ...] = ()
 
 
 _TRACE_HEADER_RE = re.compile(r"^(#{2,3})\s+Trace Refs\s*$", re.IGNORECASE)
@@ -20,6 +22,10 @@ _HEADER_RE = re.compile(r"^#{1,6}\s+")
 #   - `path`
 # - artifact_refs:
 #   - `figma:file/...`
+# - scope_refs:
+#   - `projects/aicos`
+# - session_refs:
+#   - `codex-thread-...`
 _KEY_BULLET_RE = re.compile(r"^\s*-\s*([a-zA-Z_]+)\s*:\s*(.*)\s*$")
 _SUB_BULLET_RE = re.compile(r"^\s{2,}-\s*(.+?)\s*$")
 _BACKTICK_RE = re.compile(r"`([^`]+)`")
@@ -54,6 +60,8 @@ def parse_trace_refs(markdown_text: str) -> TraceRefs:
 
     source_refs: list[str] = []
     artifact_refs: list[str] = []
+    scope_refs: list[str] = []
+    session_refs: list[str] = []
 
     current_key: str | None = None
     for raw in lines[start_idx:]:
@@ -75,6 +83,10 @@ def parse_trace_refs(markdown_text: str) -> TraceRefs:
                     source_refs.extend(items)
                 elif current_key in {"artifact_ref", "artifact_refs"}:
                     artifact_refs.extend(items)
+                elif current_key in {"scope_ref", "scope_refs"}:
+                    scope_refs.extend(items)
+                elif current_key in {"session_ref", "session_refs", "thread_ref", "thread_refs"}:
+                    session_refs.extend(items)
             continue
 
         sub_match = _SUB_BULLET_RE.match(line)
@@ -85,6 +97,10 @@ def parse_trace_refs(markdown_text: str) -> TraceRefs:
                 source_refs.extend(items)
             elif current_key in {"artifact_ref", "artifact_refs"}:
                 artifact_refs.extend(items)
+            elif current_key in {"scope_ref", "scope_refs"}:
+                scope_refs.extend(items)
+            elif current_key in {"session_ref", "session_refs", "thread_ref", "thread_refs"}:
+                session_refs.extend(items)
             continue
 
     # preserve order, drop empties, de-dupe
@@ -99,7 +115,12 @@ def parse_trace_refs(markdown_text: str) -> TraceRefs:
             out.append(item)
         return tuple(out)
 
-    return TraceRefs(source_refs=dedupe(source_refs), artifact_refs=dedupe(artifact_refs))
+    return TraceRefs(
+        source_refs=dedupe(source_refs),
+        artifact_refs=dedupe(artifact_refs),
+        scope_refs=dedupe(scope_refs),
+        session_refs=dedupe(session_refs),
+    )
 
 
 def repo_path_exists(repo_root: Path, ref: str) -> bool:

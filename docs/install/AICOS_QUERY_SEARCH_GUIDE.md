@@ -172,6 +172,11 @@ Useful feedback labels:
 - `bootstrap_confusing`
 - `write_schema_confusing`
 - `interop_problem`
+- `work_state_missing`
+- `work_state_ambiguous`
+- `work_state_stale`
+- `work_state_conflict`
+- `ownership_unclear`
 
 ## 6. When To Use Which Surface
 

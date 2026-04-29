@@ -5,14 +5,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .paths import REPO_ROOT, brain_root, repo_rel
 from .pg_search.indexer import path_metadata
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-
-
 def rel(path: Path) -> str:
-    return str(path.relative_to(REPO_ROOT))
+    return repo_rel(path)
 
 
 def read_text(path: Path) -> str:
@@ -58,7 +56,7 @@ def first_summary(body: str) -> str:
 
 def registry_roots() -> list[Path]:
     return [
-        REPO_ROOT / "brain",
+        brain_root(),
         REPO_ROOT / "agent-repo",
         REPO_ROOT / "packages/aicos-kernel/contracts",
     ]

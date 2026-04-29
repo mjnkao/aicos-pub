@@ -53,7 +53,7 @@ git status --short --branch
   homes.
 - Store filled env/token files under `.runtime-home/`; this path is ignored by
   git.
-- Public/community tokens may write only to `projects/aicos-pub`.
+- Public/community tokens may write only to `projects/agents-dashboard` and `projects/templates`.
 - Do not grant public/community tokens internal maintainer access.
 - Do not write public-export continuity into private `projects/aicos`.
 - Treat `actor_role` as runtime-relative. A Codex session can be `A1`
@@ -211,10 +211,10 @@ Recommended policy for public agents:
 
 ```json
 {
-  "codex-agent-01": {"read": ["projects/*"], "write": ["projects/aicos-pub"]},
-  "claude-agent-01": {"read": ["projects/*"], "write": ["projects/aicos-pub"]},
-  "openclaw-agent-01": {"read": ["projects/*"], "write": ["projects/aicos-pub"]},
-  "codex-a2-core-public-railway": {"read": ["projects/*"], "write": ["projects/aicos-pub"]}
+  "codex-agent-01": {"read":["projects/templates","projects/templates/*","projects/agents-dashboard","projects/agents-dashboard/*"],"write":["projects/templates","projects/templates/*","projects/agents-dashboard","projects/agents-dashboard/*"]},
+  "claude-agent-01": {"read":["projects/templates","projects/templates/*","projects/agents-dashboard","projects/agents-dashboard/*"],"write":["projects/templates","projects/templates/*","projects/agents-dashboard","projects/agents-dashboard/*"]},
+  "openclaw-agent-01": {"read":["projects/templates","projects/templates/*","projects/agents-dashboard","projects/agents-dashboard/*"],"write":["projects/templates","projects/templates/*","projects/agents-dashboard","projects/agents-dashboard/*"]},
+  "codex-a2-core-public-railway": {"read":["projects/templates","projects/templates/*","projects/agents-dashboard","projects/agents-dashboard/*"],"write":["projects/templates","projects/templates/*","projects/agents-dashboard","projects/agents-dashboard/*"]}
 }
 ```
 
@@ -240,9 +240,9 @@ Endpoint: https://aicos-pub-production.up.railway.app/mcp
 
 | Label | Bearer token | Scope |
 |---|---|---|
-| \`codex-agent-01\` | \`$codex_token\` | read \`projects/*\`, write \`projects/aicos-pub\` |
-| \`claude-agent-01\` | \`$claude_token\` | read \`projects/*\`, write \`projects/aicos-pub\` |
-| \`openclaw-agent-01\` | \`$openclaw_token\` | read \`projects/*\`, write \`projects/aicos-pub\` |
+| \`codex-agent-01\` | \`$codex_token\` | read/write \`projects/templates\` and \`projects/agents-dashboard\` |
+| \`claude-agent-01\` | \`$claude_token\` | read/write \`projects/templates\` and \`projects/agents-dashboard\` |
+| \`openclaw-agent-01\` | \`$openclaw_token\` | read/write \`projects/templates\` and \`projects/agents-dashboard\` |
 EOF
 ```
 
@@ -255,7 +255,7 @@ railway variable set --service aicos-pub \
   --skip-deploys
 
 railway variable set --service aicos-pub \
-  'AICOS_DAEMON_TOKEN_SCOPE_POLICY={"codex-agent-01":{"read":["projects/*"],"write":["projects/aicos-pub"]},"claude-agent-01":{"read":["projects/*"],"write":["projects/aicos-pub"]},"openclaw-agent-01":{"read":["projects/*"],"write":["projects/aicos-pub"]}}' \
+  'AICOS_DAEMON_TOKEN_SCOPE_POLICY={"codex-agent-01":{"read":["projects/templates","projects/templates/*","projects/agents-dashboard","projects/agents-dashboard/*"],"write":["projects/templates","projects/templates/*","projects/agents-dashboard","projects/agents-dashboard/*"]},"claude-agent-01":{"read":["projects/templates","projects/templates/*","projects/agents-dashboard","projects/agents-dashboard/*"],"write":["projects/templates","projects/templates/*","projects/agents-dashboard","projects/agents-dashboard/*"]},"openclaw-agent-01":{"read":["projects/templates","projects/templates/*","projects/agents-dashboard","projects/agents-dashboard/*"],"write":["projects/templates","projects/templates/*","projects/agents-dashboard","projects/agents-dashboard/*"]}}' \
   --skip-deploys
 ```
 
@@ -284,10 +284,10 @@ PY
 The public write scope must exist in the exported corpus:
 
 ```text
-brain/projects/aicos-pub/canonical/project-profile.md
-brain/projects/aicos-pub/working/handoff/current.md
-brain/projects/aicos-pub/working/status-items/README.md
-brain/projects/aicos-pub/working/feedback/README.md
+brain/projects/agents-dashboard/canonical/project-profile.md
+brain/projects/agents-dashboard/working/handoff/current.md
+brain/projects/agents-dashboard/working/status-items/README.md
+brain/projects/agents-dashboard/working/feedback/README.md
 ```
 
 If this scope is missing, write tools return:
@@ -436,7 +436,7 @@ curl -fsS \
       "name": "aicos_record_feedback",
       "arguments": {
         "mcp_contract_ack": "mcp-v0.6-write-contract-ack",
-        "scope": "projects/aicos-pub",
+        "scope": "projects/agents-dashboard",
         "agent_family": "smoke",
         "agent_instance_id": "railway-write-smoke",
         "actor_role": "A1",
@@ -452,7 +452,7 @@ curl -fsS \
         "feedback_type": "no_issue",
         "severity": "low",
         "title": "Railway write smoke",
-        "summary": "Bearer token can write to projects/aicos-pub."
+        "summary": "Bearer token can write to projects/agents-dashboard."
       }
     }
   }' \
@@ -463,7 +463,7 @@ Expected:
 
 ```text
 status: success
-scope: projects/aicos-pub
+scope: projects/agents-dashboard
 ```
 
 ## 11. Codex MCP Setup
@@ -593,6 +593,6 @@ This log is the raw operational history. This runbook is the clean install path.
 | `401 Unauthorized` | Missing or stale bearer token | Confirm `Authorization: Bearer <token>` and redeploy/restart after variable changes |
 | `markdown_direct` | PostgreSQL schema lock timeout or no DSN | Confirm `AICOS_PG_DSN`, then restart service |
 | `postgresql_fts` | PostgreSQL active, embeddings missing | Set `OPENAI_API_KEY` and embedding vars, redeploy/restart |
-| `missing_project_scope` | `brain/projects/aicos-pub` missing | Add minimal public scope files, commit, deploy |
+| `missing_project_scope` | `brain/projects/agents-dashboard` missing | Add minimal public scope files, commit, deploy |
 | New token label not visible | Running deployment has old env snapshot | `railway service redeploy`, then restart if lock timeout occurs |
 | Railway healthcheck fails | `/health` requires bearer token | Do not use unauthenticated Railway `healthcheckPath` |

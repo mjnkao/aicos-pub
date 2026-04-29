@@ -17,7 +17,7 @@ Start with:
 - AICOS runtime: `public-railway-aicos`
 - MCP endpoint: `https://aicos-pub-production.up.railway.app/mcp`
 - AICOS scope: `projects/agents-dashboard`
-- Local code path: `/Users/minh/Projects/agents-pm-dashboard`
+- Local code path: `<USER_HOME>/Projects/agents-pm-dashboard`
 - GitHub repository: `https://github.com/mjnkao/ai-agent-pm-dashboard`
 
 ## Layer 2 - Current Work

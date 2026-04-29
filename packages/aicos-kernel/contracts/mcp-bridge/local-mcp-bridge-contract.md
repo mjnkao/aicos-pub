@@ -251,6 +251,8 @@ mcp_contract_status:
     - aicos_write_handoff_update
     - aicos_update_status_item
     - aicos_register_artifact_ref
+    - aicos_record_feedback
+    - aicos_propose_project
   semantic_read_tools:
     - aicos_get_startup_bundle
     - aicos_get_handoff_current
@@ -318,6 +320,7 @@ Phase 2 implements a small semantic write surface:
 | `aicos_update_status_item` | Upsert status for open items, open questions, tech debt, or decision follow-ups | `brain/projects/<project-id>/working/status-items/` |
 | `aicos_register_artifact_ref` | Register compact artifact refs without copying artifact bodies | `brain/projects/<project-id>/working/artifact-refs/` |
 | `aicos_record_feedback` | Record context-serving/rule/routing feedback signals | `brain/projects/<project-id>/working/feedback/` |
+| `aicos_propose_project` | Propose a project scope that does not exist yet | `brain/workspaces/main/working/project-proposals/` |
 
 Optional later:
 
@@ -369,6 +372,8 @@ client_request_id: "<idempotency-friendly id>" # optional
 startup_bundle_ref: "<bundle id/ref>"       # optional
 packet_ref: "<packet id/path/bundle>"       # optional
 handoff_ref: "<handoff id/path/bundle>"     # optional
+scope_refs: ["<projects/... or workspace/company scope>"] # optional
+session_refs: ["<agent/thread/session id>"] # optional
 artifact_refs: ["<artifact/ref>"]           # optional
 notes: "<short note>"                       # optional, max 1000 chars
 ```
@@ -401,6 +406,8 @@ client_request_id: "<idempotency-friendly id>" # optional
 startup_bundle_ref: "<bundle id/ref>"       # optional
 packet_ref: "<packet id/path/bundle>"       # optional
 handoff_ref: "<handoff id/path/bundle>"     # optional
+scope_refs: ["<projects/... or workspace/company scope>"] # optional
+session_refs: ["<agent/thread/session id>"] # optional
 artifact_refs: ["<artifact/ref>"]           # optional
 ```
 
@@ -436,6 +443,8 @@ work_context: "<workstream/session>"        # optional
 client_request_id: "<idempotency-friendly id>" # optional
 startup_bundle_ref: "<bundle id/ref>"       # optional
 packet_ref: "<packet id/path/bundle>"       # optional
+scope_refs: ["<projects/... or workspace/company scope>"] # optional
+session_refs: ["<agent/thread/session id>"] # optional
 artifact_refs: ["<artifact/ref>"]           # optional
 notes: "<short handoff note, not detailed status-item bodies>" # optional, max 1000 chars
 ```
@@ -463,7 +472,7 @@ title: "<short title>"                       # required
 summary: "<bounded current status summary>" # required
 reason: "<why this status changed>"         # optional
 next_step: "<remaining action or none>"     # optional
-source_ref: "<handoff/open-items/doc source ref>" # optional
+source_ref: "<repo-relative source path>"   # optional; path only, not a scope/session/url
 actor_family: "<legacy optional; omit unless asked>" # optional
 logical_role: "<legacy optional; omit unless asked>" # optional
 work_context: "<workstream/session>"        # optional
@@ -471,6 +480,8 @@ client_request_id: "<idempotency-friendly id>" # optional
 startup_bundle_ref: "<bundle id/ref>"       # optional
 packet_ref: "<packet id/path/bundle>"       # optional
 handoff_ref: "<handoff id/path/bundle>"     # optional
+scope_refs: ["<projects/... or workspace/company scope>"] # optional
+session_refs: ["<agent/thread/session id>"] # optional
 artifact_refs: ["<artifact/ref>"]           # optional
 ```
 
@@ -509,11 +520,13 @@ artifact_kind: "note|report|diff|output|analysis|contract_check|dataset|design|c
 title: "<short title>"                       # required
 artifact_ref: "<path/url/id>"                # required
 summary: "<bounded relevance summary>"       # required
-source_ref: "<optional source/ref>"          # optional
+source_ref: "<optional repo-relative source path>" # optional; path only, not a scope/session/url
 client_request_id: "<idempotency-friendly id>" # optional
 startup_bundle_ref: "<bundle id/ref>"        # optional
 packet_ref: "<packet id/path/bundle>"        # optional
 handoff_ref: "<handoff id/path/bundle>"      # optional
+scope_refs: ["<projects/... or workspace/company scope>"] # optional
+session_refs: ["<agent/thread/session id>"]  # optional
 artifact_refs: ["<related artifact/ref>"]    # optional
 ```
 
@@ -531,19 +544,63 @@ agent_family: "codex|claude-code|gemini-antigravity|openclaw|..." # required
 agent_instance_id: "<unique session/agent instance id>" # required
 work_type: "code|content|design|research|ops|review|planning|data|mixed|orientation" # required
 work_lane: "<generic coordination lane>"     # required
-feedback_type: "no_issue|query_failed|stale_result|context_missing|context_overload|rule_confusing|tool_missing|tool_shape_confusing|tool_too_heavy|bootstrap_confusing|write_schema_confusing|interop_problem|packet_missing_ref|handoff_too_long|role_context_wrong|routing_confusing|other" # required
+feedback_type: "no_issue|query_failed|stale_result|context_missing|context_overload|rule_confusing|tool_missing|tool_shape_confusing|tool_too_heavy|bootstrap_confusing|write_schema_confusing|interop_problem|packet_missing_ref|handoff_too_long|work_state_missing|work_state_ambiguous|work_state_stale|work_state_conflict|ownership_unclear|role_context_wrong|routing_confusing|other" # required
 severity: "low|medium|high|critical"         # required
 title: "<short title>"                       # required
 summary: "<what failed or should improve>"   # required
 observed_in: "<surface/session/task>"        # optional
 recommendation: "<suggested improvement>"    # optional
-source_ref: "<source/ref>"                   # optional
+source_ref: "<repo-relative source path>"    # optional; path only, not a scope/session/url
+scope_refs: ["<projects/... or workspace/company scope>"] # optional
+session_refs: ["<agent/thread/session id>"]  # optional
 artifact_refs: ["<related artifact/ref>"]    # optional
 ```
 
 Use feedback writes for learning/improvement signals. Do not use feedback as a
 substitute for task state, handoff, status item lifecycle, or canonical policy
 promotion.
+
+Work-state feedback labels are for A1/A2 friction around current work discovery
+and continuation:
+
+- `work_state_missing`: the needed task/open item/status was not findable.
+- `work_state_ambiguous`: multiple items looked like the same or next work.
+- `work_state_stale`: an item looked outdated or contradicted current context.
+- `work_state_conflict`: checklist/status/relations disagreed.
+- `ownership_unclear`: the agent could not tell who owns or may continue work.
+
+### `aicos_propose_project`
+
+Use this when an agent discovers the needed project does not exist in AICOS yet.
+It records an intake request for human/A2 review only. It must not create a
+project brain, project registry entry, token scope, task state, handoff, or
+canonical truth.
+
+```yaml
+scope: "projects/<proposed-project-id>"     # required; must not already exist
+proposed_project_id: "<proposed-project-id>" # required; must match scope
+mcp_contract_ack: "mcp-v0.6-write-contract-ack" # required
+actor_role: "A1|A2-Core-C|A2-Core-R|..."    # required, role lane doing the work
+agent_family: "codex|claude-code|gemini-antigravity|openclaw|..." # required
+agent_instance_id: "<unique session/agent instance id>" # required
+work_type: "code|content|design|research|ops|review|planning|data|mixed|orientation" # required
+work_lane: "<generic coordination lane>"     # required
+title: "<short proposal title>"              # required
+summary: "<bounded project summary>"         # required
+reason: "<why this needs a separate AICOS project>" # required
+initial_goal: "<first useful outcome after approval>" # optional
+suggested_owner: "<human/team/agent owner>"  # optional
+urgency: "low|medium|high"                   # optional, default medium
+suggested_context_sources: ["<repo/path/url/context-ref>"] # optional
+source_ref: "<repo-relative source path>"    # optional; path only, not a scope/session/url
+scope_refs: ["<projects/... or workspace/company scope>"] # optional
+session_refs: ["<agent/thread/session id>"]  # optional
+artifact_refs: ["<related artifact/ref>"]    # optional
+```
+
+Do not use feedback or handoff writes as a workaround for missing projects.
+Use `aicos_propose_project` so the request lands in the project-intake lane and
+can be approved, rejected, or converted into a project brain deliberately.
 
 Session-close writes require one feedback closure first for the same
 `scope + agent_family + agent_instance_id + work_lane`.
@@ -564,7 +621,10 @@ nothing from agent usage.
 
 ## Phase 2 Validation Rules
 
-- `scope` must be `projects/<project-id>` and the project must exist.
+- `scope` must be `projects/<project-id>`.
+- Project-scoped continuity writes require the project to exist.
+- `aicos_propose_project` is the exception: its `scope` names the proposed
+  project and must not already exist.
 - Required fields must be present and non-empty.
 - Shared coordination policy:
   `brain/shared/policies/agent-coordination-policy.md`.
@@ -610,6 +670,15 @@ nothing from agent usage.
   bodies into MCP payloads.
 - Feedback writes are structured learning signals. They do not change project
   truth until reviewed and promoted through a later policy/context update.
+- Trace refs must be typed consistently:
+  - `source_ref` / `source_refs`: repo-relative source paths only.
+  - `artifact_refs`: URLs, commits, PRs/issues, output files, runtime files, or
+    other non-source artifacts.
+  - `scope_refs`: AICOS scopes such as `projects/aicos`.
+  - `session_refs`: agent/thread/session ids such as `codex-thread-...`.
+  Do not put scopes, thread ids, URLs, or runtime outputs in `source_ref`;
+  relation audit treats `source_ref` as a path that should resolve inside the
+  repo.
 - Query reads are bounded context discovery over AICOS hot context. In HTTP
   daemon mode they prefer PostgreSQL hybrid search with pgvector embeddings
   when available, then PostgreSQL FTS, then markdown-direct fallback. Query

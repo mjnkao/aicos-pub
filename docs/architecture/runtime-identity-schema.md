@@ -35,7 +35,7 @@ runtime_identity_map:
   identity_private:
     runtime: private-local-aicos
     mcp_name: aicos_local_private
-    project_scope: projects/aicos-pub
+    project_scope: projects/aicos-pub  # private/local coordination scope only
     agent_position: external_agent
     actor_role: A1
     functional_role: CTO/fullstack dev of aicos-pub
@@ -95,4 +95,3 @@ readable and visible in status, handoff, feedback, and checkpoint records.
 `work_context`, `execution_context`, `actor_family`, and `logical_role` remain
 accepted as legacy/compact context fields. They do not replace the structured
 runtime identity fields.
-

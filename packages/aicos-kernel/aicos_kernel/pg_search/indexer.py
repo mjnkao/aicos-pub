@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from ..paths import brain_root, virtual_repo_path
 from .embedding import EmbeddingClient, EmbeddingConfig, approximate_tokens, vector_literal
 
 # -----------------------------------------------------------------------
@@ -45,6 +46,7 @@ _AUTHORITY: dict[str, tuple[str, str, float, list[str]]] = {
     "workstream":      ("working",    "medium", 1.2,  ["all"]),
     "open_items":      ("working",    "medium", 1.1,  ["all"]),
     "open_questions":  ("working",    "medium", 1.1,  ["all"]),
+    "feedback":        ("working",    "medium", 1.1,  ["all", "operator", "maintainer"]),
     "status_item":     ("working",    "medium", 1.0,  ["all"]),
     "working":         ("working",    "medium", 1.0,  ["all"]),
     "packet":          ("execution",  "medium", 1.0,  ["developer", "qa", "tech_lead"]),
@@ -76,10 +78,7 @@ def _freshness(mtime: datetime, state_tag: str) -> str:
 
 def path_metadata(path: Path, repo_root: Path) -> dict[str, Any] | None:
     """Return metadata dict for this path, or None if path should be skipped."""
-    try:
-        rel = path.relative_to(repo_root)
-    except ValueError:
-        return None
+    rel = virtual_repo_path(path)
 
     parts = rel.parts
     if not parts:
@@ -127,6 +126,8 @@ def path_metadata(path: Path, repo_root: Path) -> dict[str, Any] | None:
                 kind = "workstream"
             elif "artifact-refs" in parts:
                 kind = "artifact_ref"
+            elif "feedback" in parts:
+                kind = "feedback"
             elif fname in ("open-items.md",):
                 kind = "open_items"
             elif fname in ("open-questions.md",):
@@ -202,7 +203,7 @@ _META_LINE_RE   = re.compile(
     r"^(status|project|scope|write id|written at|last updated at|priority|owner|item type|work lane|task ref|last write id|checkpoint type|feedback type|severity|artifact kind|artifact ref|opened at)\s*:",
     re.IGNORECASE,
 )
-_INDEX_SCHEMA_VERSION = 2
+_INDEX_SCHEMA_VERSION = 3
 _KEY_VALUE_RE = re.compile(r"^([A-Za-z][A-Za-z0-9 _/-]{1,80})\s*:\s*(.*?)\s*$")
 _CANONICAL_FIELD_NAMES = {
     "actor family": "agent_family",
@@ -781,7 +782,7 @@ class BrainIndexer:
 
     def _scan_all(self):
         roots = [
-            self.repo_root / "brain",
+            brain_root(),
             self.repo_root / "agent-repo",
             self.repo_root / "packages" / "aicos-kernel" / "contracts",
         ]

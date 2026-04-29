@@ -731,7 +731,7 @@ Actions:
   - `projects/templates`
   - `projects/agents-dashboard`
 - Connected `projects/agents-dashboard` to:
-  - local path `/Users/minh/Projects/agents-pm-dashboard`
+  - local path `<USER_HOME>/Projects/agents-pm-dashboard`
   - git repository `git@github.com:mjnkao/ai-agent-pm-dashboard.git`
   - GitHub URL `https://github.com/mjnkao/ai-agent-pm-dashboard`
 - Pushed public project-scope commit `bd5442d`.

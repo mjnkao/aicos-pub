@@ -36,6 +36,7 @@ Phase 2 implements the semantic write surface:
 - `aicos_update_status_item`
 - `aicos_register_artifact_ref`
 - `aicos_record_feedback`
+- `aicos_propose_project`
 
 Contract:
 

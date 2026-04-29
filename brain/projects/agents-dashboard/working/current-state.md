@@ -8,7 +8,7 @@ Status: active starter project
 The AI Agent PM Dashboard project exists in three connected places:
 
 - AICOS project scope: `projects/agents-dashboard`
-- Local code path: `/Users/minh/Projects/agents-pm-dashboard`
+- Local code path: `<USER_HOME>/Projects/agents-pm-dashboard`
 - GitHub repo: `https://github.com/mjnkao/ai-agent-pm-dashboard`
 
 The AICOS Railway MCP server can now serve this project scope to external

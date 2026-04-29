@@ -168,6 +168,7 @@
       "expected_refs": [
         "brain/projects/aicos/working/status-items/aicos-search-focus-a1-context-retrieval.md",
         "brain/projects/aicos/working/status-items/aicos-phase-5-retrieval-runtime-reduction.md",
+        "brain/projects/aicos/working/status-items/aicos-gbrain-inspired-search-checklist-20260428.md",
         "brain/projects/aicos/working/status-items/aicos-search-eval-corpus-baseline-20260428.md",
         "brain/projects/aicos/evidence/research/aicos-option-c-transition-checklist-20260428.md",
         "brain/projects/aicos/evidence/research/aicos-phase-5-retrieval-runtime-reduction-20260428.md"
@@ -378,8 +379,8 @@
         "evidence"
       ],
       "expected_refs": [
-        "brain/projects/aicos/working/status-items/aicos-brain-status-pg-stale-false-signal.md",
-        "brain/projects/aicos/working/status-items/aicos-gbrain-full-sync-eisdir-runtime-cache.md"
+        "brain/projects/aicos/evidence/research/aicos-retrieval-baseline-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-gbrain-inspired-search-checklist-20260428.md"
       ],
       "expected_answer_shape": "Distinguish status false signal from actual retrieval outage and mention health/query checks.",
       "failure_mode_if_missing": "A1 distrusts healthy search or wastes time debugging ranking."
@@ -1305,10 +1306,37 @@
       "expected_refs": [
         "brain/projects/aicos/working/status-items/aicos-phase-5-retrieval-runtime-reduction.md",
         "brain/projects/aicos/working/status-items/aicos-gbrain-inspired-search-checklist-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-phase-5-retrieval-runtime-reduction-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-search-focus-backlog-20260428.md",
         "brain/projects/aicos/evidence/research/aicos-gbrain-inspired-search-checklist-20260428.md"
       ],
       "expected_answer_shape": "Point to remaining retrieval runtime/search checklist work, not the already-resolved initial eval baseline.",
       "failure_mode_if_missing": "A1 treats completed baseline eval work as the current next task."
+    },
+    {
+      "id": "aicos-feedback-auth-token-health-eval",
+      "priority": "medium",
+      "scope": "projects/aicos",
+      "actor_role": "A1",
+      "functional_role": "operator",
+      "work_type": "orientation",
+      "work_lane": "mcp-auth",
+      "question": "how should an A1 or A2 check AICOS MCP auth/token setup when a health or eval command fails?",
+      "context_kinds": [
+        "feedback",
+        "evidence",
+        "contract",
+        "status_items"
+      ],
+      "expected_refs": [
+        "brain/projects/aicos/evidence/research/aicos-feedback-to-eval-digest-20260428.md",
+        "brain/projects/aicos/evidence/research/aicos-pub-feedback-to-eval-digest-20260428.md",
+        "brain/projects/aicos/working/feedback/20260428t112627z-886f23eabe.md",
+        "brain/projects/aicos/evidence/checkpoints/20260428t112641z-22a531f4b8.md",
+        "integrations/local-mcp-bridge/install/AICOS_MCP_AGENT_INSTALL.md"
+      ],
+      "expected_answer_shape": "Point to daemon token/env fallback, doctor/eval commands, and the MCP install/auth guidance instead of treating auth failure as search failure.",
+      "failure_mode_if_missing": "A1 or A2 debugs retrieval quality when the real problem is token/env setup."
     }
   ]
 }

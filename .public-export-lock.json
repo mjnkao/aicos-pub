@@ -1,11 +1,11 @@
 {
   "source_repo": "private-aicos",
-  "source_commit": "1d51868478a2a215d5f50db0a129f3fc4dc98259",
+  "source_commit": "086e84bc33311871111e3c445ab57d53018a54c4",
   "source_dirty": true,
   "source_dirty_entry_count": 1,
   "manifest": "public-export/manifest.yml",
   "manifest_version": "2026-04-21-initial",
-  "exported_at": "2026-04-28T11:30:07Z",
+  "exported_at": "2026-04-29T03:49:52Z",
   "continuity_bundle": {
     "project_scope": "projects/aicos",
     "canonical": "brain/projects/aicos/canonical/",

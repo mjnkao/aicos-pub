@@ -40,6 +40,7 @@ The server exposes AICOS context/control-plane tools:
 - `aicos_update_status_item`
 - `aicos_register_artifact_ref`
 - `aicos_record_feedback`
+- `aicos_propose_project`
 
 Authority model:
 
@@ -478,6 +479,8 @@ When you finish meaningful work, write continuity back through AICOS MCP using:
   and AICOS only needs a compact ref plus relevance summary
 - `aicos_record_feedback` when context serving, routing, policy, role fit, or
   query behavior was confusing or insufficient
+- `aicos_propose_project` when the needed project does not exist in AICOS yet;
+  this records an intake proposal only and does not create the project
 
 Do not use `aicos_write_handoff_update` as a fallback for open items, open
 questions, tech debt, decision follow-ups, or backlog-like status lists. If
@@ -487,8 +490,8 @@ AICOS MCP server before writing. If it is still missing, report the blocker
 instead of normalizing status-item writes into handoff.
 
 Do not use feedback writes as a substitute for task state, handoff, status-item
-lifecycle, or canonical policy changes. Feedback is a learning signal for AICOS
-improvement.
+lifecycle, project-creation requests, or canonical policy changes. Feedback is
+a learning signal for AICOS improvement.
 
 Every read/write must include agent identity. For external agents, AICOS treats
 the service actor as `A1` by default.
@@ -522,7 +525,13 @@ Every write must include actor identity:
 - `coordination_status`: `active`, `paused`, `blocked`, `handoff_ready`, or
   `completed`; default to `active` while work is ongoing
 - `artifact_scope`: short human-readable artifact or sub-scope being worked on
-- `artifact_refs`: relevant repo, Figma, Drive, Notion, data, or output refs
+- `source_ref`: repo-relative source path only, such as `brain/...`,
+  `packages/...`, or `integrations/...`; do not put project scopes, thread ids,
+  URLs, or runtime output paths here
+- `artifact_refs`: relevant external/non-source refs such as commit, PR/issue,
+  Figma, Drive, Notion, data, output, or runtime files
+- `scope_refs`: AICOS scopes such as `projects/sample-project`
+- `session_refs`: agent/thread/session ids such as `codex-thread-...`
 - `work_branch`: git branch when applicable to code work
 - `worktree_path`: local checkout/worktree path; required for `work_type:
   "code"` so other agents can see which checkout/worktree is in use

@@ -193,6 +193,48 @@ def retrieval_recipes(query: str) -> list[dict[str, Any]]:
     return recipes
 
 
+def answer_playbook(query: str, nudges: list[dict[str, str]], recipes: list[dict[str, Any]]) -> dict[str, Any]:
+    """Tell A1 callers how to turn retrieval output into a bounded answer."""
+    playbook: dict[str, Any] = {
+        "mode": "search_answer",
+        "steps": [
+            "Use ranked refs as evidence, not as a replacement for direct current-state reads.",
+            "Answer with the newest/current-control refs first, then add canonical/evidence refs when needed.",
+            "If important context is missing or conflicting, say what is missing and record feedback instead of guessing.",
+        ],
+        "writeback": {
+            "when": "Record feedback when MCP/search/routing made the answer slower, confusing, incomplete, or wrong.",
+            "tool": "aicos_record_feedback",
+        },
+    }
+    if nudges:
+        playbook["mode"] = "direct_reads_then_search"
+        playbook["steps"] = [
+            "Call the direct_read_nudges tools first; they are cheaper and more authoritative for current control-plane state.",
+            "Use search results only to fill gaps, find supporting refs, or inspect a specific lane/topic.",
+            "Synthesize the answer around current status, active ownership/coordination, blockers, and next safe action.",
+            "Cite the direct reads and any supporting search refs so a human or next agent can continue quickly.",
+        ]
+    if recipes:
+        playbook["recommended_recipe_id"] = recipes[0]["id"]
+        playbook["recipe_summary"] = recipes[0]["title"]
+    if _is_strategic_review(query):
+        playbook["answer_shape"] = [
+            "current direction and product/architecture intent",
+            "what is already decided vs still open",
+            "main risks/tradeoffs",
+            "recommended next decisions or implementation slice",
+        ]
+    else:
+        playbook["answer_shape"] = [
+            "short status summary",
+            "relevant refs/read order",
+            "blockers or coordination risks",
+            "next recommended action",
+        ]
+    return playbook
+
+
 def _priority_boost(row: dict[str, Any], query: str) -> tuple[float, list[str]]:
     """Small rule boost for current-control surfaces; keeps PG/FTS as primary signal."""
     ref = str(row.get("source_ref") or "")
@@ -363,6 +405,7 @@ class PgSearchEngine:
 
         results = self._fuse_and_trim(fts_rows + control_rows + strategic_rows + metadata_rows, vector_rows, query, max_results)
         nudges = direct_read_nudges(query)
+        recipes = retrieval_recipes(query)
 
         return {
             "metadata": {
@@ -379,7 +422,8 @@ class PgSearchEngine:
             "query": query,
             "context_kinds": context_kinds if context_kinds else "auto_all",
             "direct_read_nudges": nudges,
-            "retrieval_recipes": retrieval_recipes(query),
+            "retrieval_recipes": recipes,
+            "answer_playbook": answer_playbook(query, nudges, recipes),
             "results": results,
             "boundary": (
                 "PostgreSQL hybrid search uses vector similarity when available, "

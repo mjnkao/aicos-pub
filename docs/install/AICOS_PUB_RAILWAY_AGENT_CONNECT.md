@@ -39,7 +39,7 @@ global identity for Codex, Claude, or OpenClaw across every AICOS deployment.
 For this public Railway runtime:
 
 - use `actor_role: "A1"` when the agent is an external/public work agent
-  writing feedback, status, or handoff into `projects/aicos-pub`;
+  writing feedback, status, or handoff into `projects/agents-dashboard`;
 - use `actor_role: "A2-Core-C"` only when the token and assignment explicitly
   make the agent an internal maintainer of the public Railway AICOS runtime;
 - keep `agent_family` as the product/client family such as `codex`,
@@ -60,9 +60,9 @@ Current dedicated agent token labels:
 
 | Label | Intended user | Read scope | Write scope |
 |---|---|---|---|
-| `codex-agent-01` | Codex-compatible agents | `projects/*` | `projects/aicos-pub` |
-| `claude-agent-01` | Claude-compatible agents | `projects/*` | `projects/aicos-pub` |
-| `openclaw-agent-01` | OpenClaw/VM agents | `projects/*` | `projects/aicos-pub` |
+| `codex-agent-01` | Codex-compatible agents | `projects/templates`, `projects/agents-dashboard` | `projects/templates`, `projects/agents-dashboard` |
+| `claude-agent-01` | Claude-compatible agents | `projects/templates`, `projects/agents-dashboard` | `projects/templates`, `projects/agents-dashboard` |
+| `openclaw-agent-01` | OpenClaw/VM agents | `projects/templates`, `projects/agents-dashboard` | `projects/templates`, `projects/agents-dashboard` |
 
 Token values are **not committed**. On the maintainer machine, the generated
 tokens are stored in:
@@ -119,7 +119,7 @@ curl -fsS \
   https://aicos-pub-production.up.railway.app/mcp
 ```
 
-Query project context:
+Query public project context:
 
 ```bash
 TOKEN="<TOKEN>"
@@ -135,8 +135,8 @@ curl -fsS \
       "name": "aicos_query_project_context",
       "arguments": {
         "actor": "A1",
-        "scope": "projects/aicos",
-        "query": "current AICOS status and next tasks",
+        "scope": "projects/agents-dashboard",
+        "query": "current dashboard project status and next tasks",
         "agent_family": "codex",
         "agent_instance_id": "agent-smoke-test",
         "work_type": "orientation",
@@ -183,17 +183,21 @@ headers.
 Dedicated public agent tokens may write only to:
 
 ```text
-projects/aicos-pub
+projects/agents-dashboard
+projects/templates
 ```
 
 They may read:
 
 ```text
-projects/*
+projects/agents-dashboard
+projects/templates
 ```
 
 They are intentionally not internal maintainer tokens. Writes to protected
-private service scopes such as `projects/aicos` should be rejected.
+service scopes such as `projects/aicos` should be rejected. Reads of
+`projects/aicos` are also restricted for public/community tokens so A1 agents do
+not mix up public project work with AICOS core maintenance.
 
 ## Useful Read Tools
 
@@ -210,7 +214,7 @@ Use this standard metadata on first contact:
 
 ```json
 {
-  "scope": "projects/aicos-pub",
+  "scope": "projects/agents-dashboard",
   "agent_family": "<client-family>",
   "agent_instance_id": "<unique-agent-id>",
   "work_type": "orientation",

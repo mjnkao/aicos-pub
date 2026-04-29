@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS aicos_context_docs (
   CONSTRAINT aicos_ctx_scope_check    CHECK (scope ~ '^[a-z0-9_/-]+$'),
   CONSTRAINT aicos_ctx_kind_check     CHECK (context_kind IN (
     'canonical','working','handoff','status_item','policy','contract',
-    'packet','task_state','workstream','artifact_ref','evidence','project_registry',
+    'packet','task_state','workstream','artifact_ref','feedback','evidence','project_registry',
     'open_items','open_questions','current_state','current_direction'
   )),
   CONSTRAINT aicos_ctx_state_check    CHECK (state_tag IN (
@@ -66,6 +66,13 @@ CREATE TABLE IF NOT EXISTS aicos_context_docs (
 ALTER TABLE aicos_context_docs
   ADD COLUMN IF NOT EXISTS index_metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
   ADD COLUMN IF NOT EXISTS index_schema_version INTEGER NOT NULL DEFAULT 1;
+
+ALTER TABLE aicos_context_docs DROP CONSTRAINT IF EXISTS aicos_ctx_kind_check;
+ALTER TABLE aicos_context_docs ADD CONSTRAINT aicos_ctx_kind_check CHECK (context_kind IN (
+  'canonical','working','handoff','status_item','policy','contract',
+  'packet','task_state','workstream','artifact_ref','feedback','evidence','project_registry',
+  'open_items','open_questions','current_state','current_direction'
+));
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_aicos_ctx_scope   ON aicos_context_docs(scope);

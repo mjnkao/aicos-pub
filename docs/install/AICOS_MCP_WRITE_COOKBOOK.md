@@ -236,7 +236,7 @@ Example setup-friction payload for Antigravity:
 ```json
 {
   "mcp_contract_ack": "mcp-v0.6-write-contract-ack",
-  "scope": "projects/aicos-pub",
+  "scope": "projects/agents-dashboard",
   "actor_role": "A1",
   "agent_family": "gemini-antigravity",
   "agent_instance_id": "vm-alpha-01",
@@ -261,6 +261,17 @@ Useful `feedback_type` values:
 - `interop_problem`
 - `routing_confusing`
 - `context_missing`
+- `work_state_missing`
+- `work_state_ambiguous`
+- `work_state_stale`
+- `work_state_conflict`
+- `ownership_unclear`
+
+Use the work-state labels when the agent cannot quickly answer practical
+coordination questions such as what is next, what is already done, who owns an
+item, whether a checklist/status is stale, or which duplicate-looking item is
+canonical. Do not use feedback as a workaround for updating real task/status
+state.
 
 No-issue closure example:
 

@@ -11,17 +11,59 @@ import sys
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 from .context_registry import registry_payload, render_registry_markdown
 from .mcp_read_serving import AicosMcpReadError, dispatch_read_surface
 from .mcp_write_serving import AicosMcpWriteError, dispatch_write_tool
+from .paths import brain_path, brain_root, repo_rel
 from .relations.trace_refs import parse_trace_refs, repo_path_exists
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+
+WORK_STATE_KINDS = {
+    "task",
+    "checklist",
+    "checklist_item",
+    "open_item",
+    "open_question",
+    "tech_debt",
+    "decision_followup",
+    "phase",
+    "milestone",
+    "risk",
+    "bug",
+    "proposal",
+}
+WORK_STATE_STATUSES = {
+    "open",
+    "planned",
+    "in_progress",
+    "blocked",
+    "waiting",
+    "handoff_ready",
+    "resolved",
+    "closed",
+    "deferred",
+    "stale",
+}
+LEGACY_STATUS_TYPE_TO_KIND = {
+    "open_item": "open_item",
+    "open_question": "open_question",
+    "tech_debt": "tech_debt",
+    "decision_followup": "decision_followup",
+}
+STATUS_ITEM_STATUS_TO_WORK_STATE = {
+    "open": "open",
+    "resolved": "resolved",
+    "closed": "closed",
+    "stale": "stale",
+    "deferred": "deferred",
+    "blocked": "blocked",
+}
 
 
 def now_iso() -> str:
@@ -29,7 +71,7 @@ def now_iso() -> str:
 
 
 def rel(path: Path) -> str:
-    return str(path.relative_to(REPO_ROOT))
+    return repo_rel(path)
 
 
 def read_text(path: Path) -> str:
@@ -82,6 +124,52 @@ def markdown_field(body: str, field: str) -> str:
         if stripped.startswith(prefix):
             return stripped[len(prefix):].strip().strip("`").strip()
     return ""
+
+
+def checkbox_counts(body: str) -> dict[str, int]:
+    checked = 0
+    unchecked = 0
+    for line in body.splitlines():
+        stripped = line.strip().lower()
+        if stripped.startswith("- [x]") or stripped.startswith("* [x]"):
+            checked += 1
+        elif stripped.startswith("- [ ]") or stripped.startswith("* [ ]"):
+            unchecked += 1
+    return {"checked": checked, "unchecked": unchecked, "total": checked + unchecked}
+
+
+def looks_like_terminal_next_step(note: str) -> bool:
+    normalized = re.sub(r"\s+", " ", note.strip().lower()).strip("` ")
+    if not normalized or normalized == "none":
+        return False
+    passive_markers = [
+        "keep closed",
+        "keep resolved",
+        "keep deferred",
+        "reopen only if",
+        "no next step",
+        "none",
+    ]
+    if any(marker in normalized for marker in passive_markers):
+        return False
+    active_markers = [
+        "implement",
+        "fix",
+        "create",
+        "add ",
+        "update",
+        "review",
+        "decide",
+        "run ",
+        "test",
+        "validate",
+        "inspect",
+        "investigate",
+        "resolve",
+        "follow up",
+        "follow-up",
+    ]
+    return any(marker in normalized for marker in active_markers)
 
 
 def compact_text(body: str, limit: int = 360) -> str:
@@ -185,17 +273,17 @@ def capsule_target(args: argparse.Namespace) -> CapsuleTarget:
     capsule_type = args.capsule_type
     if capsule_type == "company":
         identifier = args.values[0]
-        return CapsuleTarget("company", identifier, REPO_ROOT / "brain/companies" / identifier, REPO_ROOT / "serving/capsules/company")
+        return CapsuleTarget("company", identifier, brain_path("companies", identifier), REPO_ROOT / "serving/capsules/company")
     if capsule_type == "workspace":
         identifier = args.values[0]
-        return CapsuleTarget("workspace", identifier, REPO_ROOT / "brain/workspaces" / identifier, REPO_ROOT / "serving/capsules/workspace")
+        return CapsuleTarget("workspace", identifier, brain_path("workspaces", identifier), REPO_ROOT / "serving/capsules/workspace")
     if capsule_type == "project":
         identifier = args.values[0]
-        return CapsuleTarget("project", identifier, REPO_ROOT / "brain/projects" / identifier, REPO_ROOT / "serving/capsules/project")
+        return CapsuleTarget("project", identifier, brain_path("projects", identifier), REPO_ROOT / "serving/capsules/project")
     if capsule_type == "branch":
         project_id, branch_id = args.values
         identifier = f"{project_id}__{branch_id}"
-        return CapsuleTarget("branch", identifier, REPO_ROOT / "brain/projects" / project_id / "branches" / branch_id, REPO_ROOT / "serving/capsules/branch")
+        return CapsuleTarget("branch", identifier, brain_path("projects", project_id, "branches", branch_id), REPO_ROOT / "serving/capsules/branch")
     if capsule_type == "actor":
         actor_class, scope = args.values
         identifier = f"{actor_class}__{scope.replace('/', '__')}"
@@ -265,7 +353,7 @@ def build_capsule(args: argparse.Namespace) -> int:
 
 def branch_compare(args: argparse.Namespace) -> int:
     project_id, branch_a, branch_b = args.project_id, args.branch_a, args.branch_b
-    root = REPO_ROOT / "brain/projects" / project_id / "branches"
+    root = brain_path("projects", project_id, "branches")
     a_root = root / branch_a
     b_root = root / branch_b
     packet = {
@@ -289,7 +377,7 @@ def option_generate(args: argparse.Namespace) -> int:
     project_id, blocker_id = args.project_id, args.blocker_id
     blocker_paths = [
         REPO_ROOT / "agent-repo/classes/a1-work-agents/tasks/blocked" / f"{blocker_id}.md",
-        REPO_ROOT / "brain/projects" / project_id / "working/blockers" / f"{blocker_id}.md",
+        brain_path("projects", project_id, "working", "blockers", f"{blocker_id}.md"),
     ]
     blocker_path = next((path for path in blocker_paths if path.exists()), blocker_paths[0])
     blocker_body = read_text(blocker_path).strip()
@@ -309,7 +397,7 @@ def option_generate(args: argparse.Namespace) -> int:
         },
     ]
     for option in options:
-        branch_root = REPO_ROOT / "brain/projects" / project_id / "branches" / option["branch_id"]
+        branch_root = brain_path("projects", project_id, "branches", option["branch_id"])
         write_text(branch_root / "branch-profile.md", f"# {option['label']}\n\nProject: `{project_id}`\n\nBlocker: `{blocker_id}`\n")
         write_text(branch_root / "inherited-context.md", f"# Inherited Context\n\nDerived from blocker `{blocker_id}` and project `{project_id}`.\n")
         write_text(branch_root / "assumptions.md", "# Assumptions\n\n- This branch is an MVP option, not approved canonical truth.\n")
@@ -374,7 +462,7 @@ def option_choose(args: argparse.Namespace) -> int:
         return 2
 
     branch_id = str(selected["branch_id"])
-    branch_root = REPO_ROOT / "brain/projects" / project_id / "branches" / branch_id
+    branch_root = brain_path("projects", project_id, "branches", branch_id)
     if not branch_root.exists():
         print(f"Missing selected branch: {rel(branch_root)}")
         return 2
@@ -442,7 +530,7 @@ def option_choose(args: argparse.Namespace) -> int:
     )
     updated.append(write_text(selected_state_path, selected_state_body))
 
-    current_state_path = REPO_ROOT / "brain/projects" / project_id / "working/current-state.md"
+    current_state_path = brain_path("projects", project_id, "working", "current-state.md")
     state_section = "\n".join(
         [
             f"Recorded at: `{now}`",
@@ -458,7 +546,7 @@ def option_choose(args: argparse.Namespace) -> int:
     )
     updated.append(upsert_markdown_section(current_state_path, f"Manager Decision: {blocker_id}", state_section))
 
-    current_direction_path = REPO_ROOT / "brain/projects" / project_id / "working/current-direction.md"
+    current_direction_path = brain_path("projects", project_id, "working", "current-direction.md")
     direction_section = "\n".join(
         [
             f"Active branch: `{branch_id}`",
@@ -470,7 +558,7 @@ def option_choose(args: argparse.Namespace) -> int:
     )
     updated.append(upsert_markdown_section(current_direction_path, f"Selected Direction: {blocker_id}", direction_section))
 
-    open_questions_path = REPO_ROOT / "brain/projects" / project_id / "working/open-questions.md"
+    open_questions_path = brain_path("projects", project_id, "working", "open-questions.md")
     if open_questions_path.exists():
         questions_section = "\n".join(
             [
@@ -485,7 +573,7 @@ def option_choose(args: argparse.Namespace) -> int:
 
     blocker_paths = [
         REPO_ROOT / "agent-repo/classes/a1-work-agents/tasks/blocked" / f"{blocker_id}.md",
-        REPO_ROOT / "brain/projects" / project_id / "working/blockers" / f"{blocker_id}.md",
+        brain_path("projects", project_id, "working", "blockers", f"{blocker_id}.md"),
     ]
     for blocker_path in blocker_paths:
         if blocker_path.exists():
@@ -623,13 +711,13 @@ def context_start(args: argparse.Namespace) -> int:
         return 2
 
     project_id = scope.split("/", 1)[1]
-    project_root = REPO_ROOT / "brain/projects" / project_id
+    project_root = brain_path("projects", project_id)
     if actor_key == "a2-core":
         actor_lane = "A2-Core"
         startup_card = REPO_ROOT / "agent-repo/classes/a2-service-agents/startup-cards/a2-core.md"
         context_ladder = REPO_ROOT / "agent-repo/classes/a2-service-agents/onboarding/a2-core-context-ladder.md"
-        role_definitions = REPO_ROOT / "brain/projects/aicos/canonical/role-definitions.md"
-        working_rules = REPO_ROOT / "brain/projects/aicos/canonical/project-working-rules.md"
+        role_definitions = brain_path("projects", "aicos", "canonical", "role-definitions.md")
+        working_rules = brain_path("projects", "aicos", "canonical", "project-working-rules.md")
         packet_index = REPO_ROOT / "agent-repo/classes/a2-service-agents/task-packets/README.md"
         rule_cards = [
             "agent-repo/classes/a2-service-agents/rule-cards/writeback.md",
@@ -643,7 +731,7 @@ def context_start(args: argparse.Namespace) -> int:
         startup_card = REPO_ROOT / "agent-repo/classes/a1-work-agents/startup-cards/a1.md"
         context_ladder = REPO_ROOT / "agent-repo/classes/a1-work-agents/onboarding/a1-context-ladder.md"
         role_definitions = project_root / "canonical/project-profile.md"
-        working_rules = REPO_ROOT / "brain/shared/policies/checkpoint-writeback-policy.md"
+        working_rules = brain_path("shared", "policies", "checkpoint-writeback-policy.md")
         packet_index = REPO_ROOT / "agent-repo/classes/a1-work-agents/task-packets/README.md"
         rule_cards = [
             "agent-repo/classes/a1-work-agents/rule-cards/writeback-checkpoint.md",
@@ -754,7 +842,7 @@ def context_start(args: argparse.Namespace) -> int:
 
 
 def brain_lane(path: Path) -> str:
-    relative = path.relative_to(REPO_ROOT / "brain")
+    relative = path.relative_to(brain_root())
     parts = relative.parts
     if len(parts) < 3:
         return "root"
@@ -771,12 +859,12 @@ def brain_lane(path: Path) -> str:
 
 
 def collect_brain_sync_files() -> tuple[list[Path], dict[str, int]]:
-    brain_root = REPO_ROOT / "brain"
+    active_brain_root = brain_root()
     files: list[Path] = []
     lane_counts: dict[str, int] = {}
-    if not brain_root.exists():
+    if not active_brain_root.exists():
         return files, lane_counts
-    for path in sorted(brain_root.rglob("*.md")):
+    for path in sorted(active_brain_root.rglob("*.md")):
         if not path.is_file() or path.is_symlink():
             continue
         files.append(path)
@@ -994,7 +1082,7 @@ def sync_brain(args: argparse.Namespace) -> int:
             return init_result.returncode
 
     mode = "text_only" if getattr(args, "text_only", False) else "full"
-    import_args = ["import", str(REPO_ROOT / "brain"), "--fresh", "--json"]
+    import_args = ["import", str(brain_root()), "--fresh", "--json"]
     if mode == "text_only":
         import_args.insert(2, "--no-embed")
     import_result = run_gbrain(import_args)
@@ -1097,9 +1185,11 @@ def brain_status(args: argparse.Namespace) -> int:
     last_sync_at = runtime_state.get("last_sync_at")
     pg_latest_indexed = pg_status.get("latest_indexed_at") if pg_status.get("available") else None
     pg_latest_embedded = pg_status.get("latest_embedded_at") if pg_status.get("available") else None
+    pg_latest_source = pg_status.get("latest_source_mtime") if pg_status.get("available") else None
 
-    def stale(compared_at: str | None) -> str:
-        if not latest:
+    def time_freshness(compared_at: str | None, compared_to: datetime | None = None) -> str:
+        target = compared_to or latest
+        if not target:
             return "unknown"
         if not compared_at:
             return "unknown"
@@ -1107,7 +1197,28 @@ def brain_status(args: argparse.Namespace) -> int:
             current = datetime.fromisoformat(compared_at.replace("Z", "+00:00"))
         except ValueError:
             return "unknown"
-        return "fresh" if current >= latest else "stale"
+        return "fresh" if current + timedelta(seconds=2) >= target else "stale"
+
+    def pg_index_freshness() -> str:
+        if not latest:
+            return "unknown"
+        if not pg_status.get("available"):
+            return "unknown"
+        # Indexed_at can be slightly earlier than the newest source mtime after
+        # rapid write+reindex cycles. Source mtime is the stronger signal that
+        # the current brain file set was seen by the PG index.
+        source_freshness = time_freshness(pg_latest_source)
+        if source_freshness == "fresh":
+            return "fresh"
+        return time_freshness(pg_latest_indexed)
+
+    def embedding_freshness() -> str:
+        if not pg_status.get("available"):
+            return "unknown"
+        missing_or_stale = pg_status.get("missing_or_stale_embeddings")
+        if missing_or_stale is not None:
+            return "fresh" if int(missing_or_stale) == 0 else "stale"
+        return time_freshness(pg_latest_embedded)
 
     payload = {
         "schema_version": "0.1",
@@ -1120,15 +1231,16 @@ def brain_status(args: argparse.Namespace) -> int:
             "last_sync_at": last_sync_at,
             "last_sync_mode": runtime_state.get("last_sync_mode", "unknown"),
             "last_sync_status": runtime_state.get("last_sync_status", "unknown"),
-            "freshness": stale(last_sync_at),
+            "freshness": time_freshness(last_sync_at),
         },
         "postgresql_index": {
             "available": bool(pg_status.get("available")),
             "reason": pg_status.get("reason", ""),
+            "latest_source_mtime": pg_latest_source,
             "latest_indexed_at": pg_latest_indexed,
-            "index_freshness": stale(pg_latest_indexed),
+            "index_freshness": pg_index_freshness(),
             "latest_embedded_at": pg_latest_embedded,
-            "embedding_freshness": stale(pg_latest_embedded),
+            "embedding_freshness": embedding_freshness(),
             "embedding_coverage": pg_status.get("embedding_coverage"),
             "missing_or_stale_embeddings": pg_status.get("missing_or_stale_embeddings"),
             "stale_docs": pg_status.get("stale_docs"),
@@ -1224,7 +1336,7 @@ def compact_handoff(args: argparse.Namespace) -> int:
         print("Scope must use projects/<project-id>.")
         return 2
     project_id = scope.split("/", 1)[1]
-    handoff = REPO_ROOT / "brain/projects" / project_id / "working/handoff/current.md"
+    handoff = brain_path("projects", project_id, "working", "handoff", "current.md")
     if not handoff.exists():
         print(f"Missing handoff: {rel(handoff)}")
         return 2
@@ -1284,6 +1396,7 @@ def mcp_write(args: argparse.Namespace) -> int:
         "status-item": "aicos_update_status_item",
         "artifact-ref": "aicos_register_artifact_ref",
         "feedback": "aicos_record_feedback",
+        "project-proposal": "aicos_propose_project",
     }
     try:
         arguments = json.loads(args.payload)
@@ -1393,6 +1506,20 @@ def mcp_template(args: argparse.Namespace) -> int:
                 "recommendation": "Optional suggested improvement.",
             }
         )
+    elif args.template_kind == "project-proposal":
+        proposed_project_id = args.scope.split("/", 1)[1] if args.scope.startswith("projects/") else "new-project-id"
+        payload.update(
+            {
+                "proposed_project_id": proposed_project_id,
+                "title": "New project proposal title",
+                "summary": "Short summary of the project that should be added to AICOS.",
+                "reason": "Why this belongs as a separate AICOS project instead of an existing project lane.",
+                "initial_goal": "First useful outcome after the project is approved.",
+                "suggested_owner": "human-or-team-owner",
+                "urgency": "medium",
+                "suggested_context_sources": ["repo/path/url/or_existing_context_ref"],
+            }
+        )
     else:
         print(json.dumps({"error": {"code": "unknown_template_kind", "message": args.template_kind}}, indent=2, ensure_ascii=False))
         return 2
@@ -1424,7 +1551,12 @@ def mcp_doctor(args: argparse.Namespace) -> int:
                 timeout=10,
                 check=False,
             )
-            ok = probe.returncode == 0 and "aicos_get_startup_bundle" in probe.stdout and "aicos_update_status_item" in probe.stdout
+            ok = (
+                probe.returncode == 0
+                and "aicos_get_startup_bundle" in probe.stdout
+                and "aicos_update_status_item" in probe.stdout
+                and "aicos_propose_project" in probe.stdout
+            )
             detail = "tools/list ok" if ok else (probe.stderr.strip() or probe.stdout[:500] or f"returncode={probe.returncode}")
         except subprocess.TimeoutExpired as exc:
             ok = False
@@ -1812,7 +1944,7 @@ def audit_relations(args: argparse.Namespace) -> int:
         except OSError:
             continue
         trace = parse_trace_refs(text)
-        if not trace.source_refs and not trace.artifact_refs:
+        if not (trace.source_refs or trace.artifact_refs or trace.scope_refs or trace.session_refs):
             continue
         with_trace += 1
         source_ref_total += len(trace.source_refs)
@@ -1834,6 +1966,16 @@ def audit_relations(args: argparse.Namespace) -> int:
             if not ref_str:
                 continue
             outgoing.append({"relation_type": "artifact_ref", "to_ref": ref_str})
+        for ref in trace.scope_refs:
+            ref_str = ref.strip()
+            if not ref_str:
+                continue
+            outgoing.append({"relation_type": "scope_ref", "to_ref": ref_str})
+        for ref in trace.session_refs:
+            ref_str = ref.strip()
+            if not ref_str:
+                continue
+            outgoing.append({"relation_type": "session_ref", "to_ref": ref_str})
 
         nodes.append({"source_ref": rel_path, "outgoing": outgoing})
 
@@ -1847,6 +1989,8 @@ def audit_relations(args: argparse.Namespace) -> int:
             "files_with_trace_refs": with_trace,
             "source_refs_total": source_ref_total,
             "artifact_refs_total": artifact_ref_total,
+            "scope_refs_total": sum(1 for node in nodes for edge in node["outgoing"] if edge["relation_type"] == "scope_ref"),
+            "session_refs_total": sum(1 for node in nodes for edge in node["outgoing"] if edge["relation_type"] == "session_ref"),
             "broken_source_refs": len(broken_source_refs),
             "absolute_or_url_source_refs": len(absolute_or_url_source_refs),
             "lane_counts": lane_counts,
@@ -1875,6 +2019,8 @@ def audit_relations(args: argparse.Namespace) -> int:
     print(f"- files w/ Trace Refs: {payload['stats']['files_with_trace_refs']}")
     print(f"- source refs: {payload['stats']['source_refs_total']} (broken: {payload['stats']['broken_source_refs']})")
     print(f"- artifact refs: {payload['stats']['artifact_refs_total']}")
+    print(f"- scope refs: {payload['stats']['scope_refs_total']}")
+    print(f"- session refs: {payload['stats']['session_refs_total']}")
     if payload.get("written_to"):
         print(f"- wrote derived index: {payload['written_to']}")
     if broken_source_refs:
@@ -1891,7 +2037,7 @@ def audit_relations(args: argparse.Namespace) -> int:
 
 
 def feedback_summary(args: argparse.Namespace) -> int:
-    root = REPO_ROOT / "brain/projects"
+    root = brain_path("projects")
     entries: list[dict[str, str]] = []
     for path in sorted(root.glob("*/working/feedback/*.md")):
         body = read_text(path)
@@ -1952,6 +2098,192 @@ def feedback_summary(args: argparse.Namespace) -> int:
         print("  - none")
     for entry in payload["recent_entries"]:
         print(f"  - {entry['last_updated_at']} | {entry['project_id']} | {entry['feedback_type'] or 'none'} | {entry['severity'] or 'none'} | {entry['title']}")
+    return 0
+
+
+def infer_work_state_kind(path: Path, body: str, legacy_item_type: str) -> tuple[str, list[dict[str, str]]]:
+    warnings: list[dict[str, str]] = []
+    normalized_type = legacy_item_type.strip().strip("`").lower()
+    if normalized_type in LEGACY_STATUS_TYPE_TO_KIND:
+        return LEGACY_STATUS_TYPE_TO_KIND[normalized_type], warnings
+
+    text = f"{markdown_title(body, path.stem)}\n{markdown_section(body, 'Summary')}\n{markdown_section(body, 'Reason')}".lower()
+    if "?" in text or "question" in text or "câu hỏi" in text or "chưa rõ" in text:
+        return "open_question", warnings
+    if any(marker in text for marker in ["bug", "broken", "lỗi", "fail", "failure"]):
+        return "bug", warnings
+    if any(marker in text for marker in ["debt", "cleanup", "stale", "missing", "thiếu", "chưa có"]):
+        return "tech_debt", warnings
+    if any(marker in text for marker in ["decision", "adr", "đã quyết định", "follow-up", "followup"]):
+        return "decision_followup", warnings
+
+    warnings.append(
+        {
+            "code": "kind_inferred_without_explicit_type",
+            "message": "No recognized Item type field; inferred open_item from title/summary heuristics.",
+        }
+    )
+    return "open_item", warnings
+
+
+def infer_work_state_status(raw_status: str) -> tuple[str, list[dict[str, str]]]:
+    warnings: list[dict[str, str]] = []
+    normalized = raw_status.strip().strip("`").lower()
+    if normalized in STATUS_ITEM_STATUS_TO_WORK_STATE:
+        return STATUS_ITEM_STATUS_TO_WORK_STATE[normalized], warnings
+    if normalized in WORK_STATE_STATUSES:
+        return normalized, warnings
+    warnings.append(
+        {
+            "code": "status_inferred_without_explicit_value",
+            "message": f"No recognized Status field; inferred open from value {raw_status or '<missing>'}.",
+        }
+    )
+    return "open", warnings
+
+
+def work_state_item_warnings(item: dict[str, Any], body: str) -> list[dict[str, str]]:
+    warnings: list[dict[str, str]] = []
+    title = str(item.get("title") or "")
+    kind = str(item.get("kind") or "")
+    status = str(item.get("status") or "")
+    next_step = markdown_section(body, "Next Step").strip()
+    summary = markdown_section(body, "Summary")
+    reason = markdown_section(body, "Reason")
+    text = f"{title}\n{summary}\n{reason}".lower()
+    checkboxes = checkbox_counts(body)
+
+    if kind not in WORK_STATE_KINDS:
+        warnings.append({"code": "unknown_kind", "message": f"Kind {kind or '<missing>'} is not in the Work State Ledger vocabulary."})
+    if status not in WORK_STATE_STATUSES:
+        warnings.append({"code": "unknown_status", "message": f"Status {status or '<missing>'} is not in the Work State Ledger vocabulary."})
+    if kind != "open_question" and any(marker in text for marker in ["?", "open question", "câu hỏi", "chưa rõ", "cần quyết định"]):
+        warnings.append({"code": "kind_may_be_open_question", "message": "Text looks decision/question-shaped; consider kind=open_question."})
+    if kind == "open_item" and any(marker in text for marker in ["bug", "debt", "friction", "missing", "cleanup", "stale", "thiếu", "lỗi"]):
+        warnings.append({"code": "kind_may_be_tech_debt_or_bug", "message": "Open item looks like existing debt/bug/friction; consider tech_debt or bug."})
+    if status in {"resolved", "closed"} and looks_like_terminal_next_step(next_step):
+        warnings.append({"code": "terminal_status_has_next_step", "message": "Resolved/closed item still has a next step; verify whether it should be open/stale or the next step should move to another item."})
+    if status == "open" and checkboxes["total"] and checkboxes["unchecked"] == 0:
+        warnings.append({"code": "open_item_all_checkboxes_done", "message": "All checklist boxes are checked but item is still open; verify status drift."})
+    if status in {"resolved", "closed"} and checkboxes["unchecked"] > 0:
+        warnings.append({"code": "terminal_item_has_unchecked_boxes", "message": "Item is resolved/closed but still has unchecked checklist boxes; verify checklist drift."})
+    if kind == "checklist_item" and checkboxes["total"] > 0:
+        warnings.append({"code": "checklist_item_contains_nested_checkboxes", "message": "Checklist item appears to contain nested checklist state; consider kind=checklist or task."})
+    return warnings
+
+
+def work_state_reconcile(args: argparse.Namespace) -> int:
+    scope = args.scope.strip()
+    if not scope.startswith("projects/") or len(scope.split("/")) != 2:
+        print(f"invalid scope: {scope}", file=sys.stderr)
+        return 2
+    project_id = scope.split("/", 1)[1]
+    project_root = brain_path("projects", project_id)
+    status_root = project_root / "working/status-items"
+    if not project_root.exists():
+        print(f"missing project scope: {scope}", file=sys.stderr)
+        return 2
+
+    files = sorted(status_root.glob("*.md")) if status_root.exists() else []
+    items: list[dict[str, Any]] = []
+    warning_rows: list[dict[str, Any]] = []
+    title_index: dict[str, list[str]] = {}
+
+    for path in files:
+        body = read_text(path)
+        title = markdown_field(body, "Title") or markdown_title(body, path.stem)
+        raw_type = markdown_field(body, "Item type")
+        raw_status = markdown_field(body, "Status")
+        kind, kind_warnings = infer_work_state_kind(path, body, raw_type)
+        status, status_warnings = infer_work_state_status(raw_status)
+        trace = parse_trace_refs(body)
+        item = {
+            "source_ref": rel(path),
+            "work_item_id": markdown_field(body, "Item id") or path.stem,
+            "title": title,
+            "kind": kind,
+            "status": status,
+            "legacy_item_type": raw_type,
+            "legacy_status": raw_status,
+            "checkboxes": checkbox_counts(body),
+            "relations": {
+                "source_refs": trace.source_refs,
+                "artifact_refs": trace.artifact_refs,
+                "scope_refs": trace.scope_refs,
+                "session_refs": trace.session_refs,
+            },
+            "warnings": [],
+        }
+        item["warnings"] = [*kind_warnings, *status_warnings, *work_state_item_warnings(item, body)]
+        title_key = re.sub(r"\s+", " ", title.strip().lower())
+        if title_key:
+            title_index.setdefault(title_key, []).append(item["source_ref"])
+        items.append(item)
+
+    for title_key, refs in sorted(title_index.items()):
+        if len(refs) <= 1:
+            continue
+        for item in items:
+            if item["source_ref"] in refs:
+                item["warnings"].append(
+                    {
+                        "code": "duplicate_title_candidate",
+                        "message": "Multiple status items share the same normalized title; verify duplicate/supersedes relation.",
+                    }
+                )
+
+    for item in items:
+        for warning in item["warnings"]:
+            warning_rows.append({"source_ref": item["source_ref"], "work_item_id": item["work_item_id"], **warning})
+
+    def count_by(field: str) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for item in items:
+            key = str(item.get(field) or "none")
+            counts[key] = counts.get(key, 0) + 1
+        return dict(sorted(counts.items(), key=lambda row: (-row[1], row[0])))
+
+    payload = {
+        "schema_version": "0.1",
+        "kind": "aicos.work_state.reconcile_report",
+        "scope": scope,
+        "generated_at": now_iso(),
+        "mode": "report_only",
+        "source_root": rel(status_root),
+        "stats": {
+            "files_scanned": len(files),
+            "items": len(items),
+            "warnings": len(warning_rows),
+            "kind_counts": count_by("kind"),
+            "status_counts": count_by("status"),
+        },
+        "items": items[: max(args.max_items, 0)],
+        "warnings": warning_rows[: max(args.max_warnings, 0)],
+        "boundary": "Report-only reconciliation. It does not create a ledger, mutate status-items, or sync PM tools.",
+    }
+
+    if args.format == "json":
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0
+
+    print("AICOS Work State Ledger reconciliation")
+    print(f"- scope: {payload['scope']}")
+    print(f"- mode: {payload['mode']}")
+    print(f"- files scanned: {payload['stats']['files_scanned']}")
+    print(f"- items: {payload['stats']['items']}")
+    print(f"- warnings: {payload['stats']['warnings']}")
+    print("- kinds:")
+    for key, count in payload["stats"]["kind_counts"].items():
+        print(f"  - {key}: {count}")
+    print("- statuses:")
+    for key, count in payload["stats"]["status_counts"].items():
+        print(f"  - {key}: {count}")
+    print("- warning examples:")
+    if not payload["warnings"]:
+        print("  - none")
+    for warning in payload["warnings"][: args.max_warnings]:
+        print(f"  - {warning['code']} | {warning['source_ref']} | {warning['message']}")
+    print(f"- boundary: {payload['boundary']}")
     return 0
 
 
@@ -2063,6 +2395,15 @@ def build_parser() -> argparse.ArgumentParser:
     feedback_summary_parser.add_argument("--format", choices=["text", "json"], default="text")
     feedback_summary_parser.set_defaults(func=feedback_summary)
 
+    work_state = sub.add_parser("work-state")
+    work_state_sub = work_state.add_subparsers(dest="work_state_command", required=True)
+    work_state_reconcile_parser = work_state_sub.add_parser("reconcile")
+    work_state_reconcile_parser.add_argument("--scope", default="projects/aicos")
+    work_state_reconcile_parser.add_argument("--max-items", type=int, default=200)
+    work_state_reconcile_parser.add_argument("--max-warnings", type=int, default=20)
+    work_state_reconcile_parser.add_argument("--format", choices=["text", "json"], default="text")
+    work_state_reconcile_parser.set_defaults(func=work_state_reconcile)
+
     install = sub.add_parser("install")
     install_sub = install.add_subparsers(dest="install_target", required=True)
     install_cli_parser = install_sub.add_parser("cli")
@@ -2087,11 +2428,11 @@ def build_parser() -> argparse.ArgumentParser:
     mcp_read_parser.add_argument("--include-stale", action="store_true")
     mcp_read_parser.set_defaults(func=mcp_read)
     mcp_write_parser = mcp_sub.add_parser("write")
-    mcp_write_parser.add_argument("write_tool", choices=["record-checkpoint", "task-update", "handoff-update", "status-item", "artifact-ref", "feedback"])
+    mcp_write_parser.add_argument("write_tool", choices=["record-checkpoint", "task-update", "handoff-update", "status-item", "artifact-ref", "feedback", "project-proposal"])
     mcp_write_parser.add_argument("payload", help="JSON object payload for the semantic write tool")
     mcp_write_parser.set_defaults(func=mcp_write)
     mcp_template_parser = mcp_sub.add_parser("template")
-    mcp_template_parser.add_argument("template_kind", choices=["checkpoint", "task-update", "handoff-update", "status-item", "artifact-ref", "feedback"])
+    mcp_template_parser.add_argument("template_kind", choices=["checkpoint", "task-update", "handoff-update", "status-item", "artifact-ref", "feedback", "project-proposal"])
     mcp_template_parser.add_argument("--scope", default="projects/aicos")
     mcp_template_parser.add_argument("--actor-role", default="A1")
     mcp_template_parser.add_argument("--agent-family", default="openclaw")

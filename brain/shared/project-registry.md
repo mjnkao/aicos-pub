@@ -30,7 +30,7 @@ Project truth remains under `brain/projects/<project-id>/`.
 
 - Scope: `projects/agents-dashboard`
 - Role: AI Agent PM Dashboard coordination scope
-- Local code path: `/Users/minh/Projects/agents-pm-dashboard`
+- Local code path: `<USER_HOME>/Projects/agents-pm-dashboard`
 - Git repository: `git@github.com:mjnkao/ai-agent-pm-dashboard.git`
 - GitHub URL: `https://github.com/mjnkao/ai-agent-pm-dashboard`
 - Protected writes: no

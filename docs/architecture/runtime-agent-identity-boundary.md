@@ -8,8 +8,8 @@ The same agent family can connect to more than one AICOS runtime.
 
 Example:
 
-- `aicos_local_private`: private/local AICOS runtime used to manage the
-  private AICOS work and the `projects/aicos-pub` export/deployment project.
+- `aicos_local_private`: private/local AICOS runtime used to manage private
+  AICOS work and any private-only public-export coordination project.
 - `aicos_railway_public`: public Railway AICOS runtime used by public agents
   to read public AICOS context and write public feedback/status.
 
@@ -52,11 +52,11 @@ may remain as a legacy note, but it does not replace `runtime_context`.
 
 ## Public Railway Examples
 
-Public agent writing feedback to public-export operations:
+Public agent writing feedback to the public dashboard/example project:
 
 ```json
 {
-  "scope": "projects/aicos-pub",
+  "scope": "projects/agents-dashboard",
   "actor_role": "A1",
   "agent_family": "codex",
   "agent_instance_id": "codex-public-export-review-001",
@@ -156,8 +156,13 @@ For the current public deployment:
 
 | Scope | Use |
 |---|---|
-| `projects/aicos` | Public AICOS core context served by Railway |
-| `projects/aicos-pub` | Public packaging/export/deployment coordination |
+| `projects/aicos` | Public AICOS core context served by Railway; protected for internal maintainers |
+| `projects/templates` | Public templates/examples for external agents |
+| `projects/agents-dashboard` | Public AI Agent PM dashboard project context |
+
+`projects/aicos-pub` and `projects/agents-pm-dashboard` are obsolete public
+runtime scopes. Keep `aicos-pub` as the repository/service name, not as an
+AICOS project scope.
 
 ## Access Guidance
 
@@ -166,7 +171,8 @@ source.
 
 Protected write access should come from token policy:
 
-- external public tokens may write `projects/aicos-pub`;
+- external public tokens may read/write only explicitly granted public scopes
+  such as `projects/templates` and `projects/agents-dashboard`;
 - public runtime maintainer tokens may write public runtime maintenance scopes;
 - private/local maintainer tokens may write private AICOS maintenance scopes.
 

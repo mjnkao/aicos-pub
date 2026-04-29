@@ -11,6 +11,7 @@ from typing import Any
 
 from .context_registry import registry_payload
 from .mcp_contract_status import contract_status_payload
+from .paths import brain_path, repo_rel
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -41,7 +42,7 @@ def now_iso() -> str:
 
 
 def rel(path: Path) -> str:
-    return str(path.relative_to(REPO_ROOT))
+    return repo_rel(path)
 
 
 def read_text(path: Path) -> str:
@@ -194,7 +195,7 @@ def validate_scope(scope: str) -> str:
 def actor_paths(actor: str, scope: str) -> dict[str, Any]:
     actor_key = normalize_actor(actor)
     project_id = validate_scope(scope)
-    project_root = REPO_ROOT / "brain/projects" / project_id
+    project_root = brain_path("projects", project_id)
     if actor_key == "a2-core":
         if scope != "projects/aicos":
             raise AicosMcpReadError(
@@ -237,7 +238,7 @@ def actor_paths(actor: str, scope: str) -> dict[str, Any]:
             "packet_index": packet_root / "README.md",
             "packet_root": packet_root,
             "role_or_profile": project_root / "canonical/project-profile.md",
-            "working_rules": REPO_ROOT / "brain/shared/policies/checkpoint-writeback-policy.md",
+            "working_rules": brain_path("shared", "policies", "checkpoint-writeback-policy.md"),
             "rule_cards": [
                 "agent-repo/classes/a1-work-agents/rule-cards/writeback-checkpoint.md",
                 "agent-repo/classes/a1-work-agents/rule-cards/handoff-continuation.md",
@@ -386,7 +387,7 @@ def markdown_heading_field(body: str, field: str) -> str:
 
 def project_root_for_scope(scope: str) -> tuple[str, Path]:
     project_id = validate_scope(scope)
-    project_root = REPO_ROOT / "brain/projects" / project_id
+    project_root = brain_path("projects", project_id)
     if not project_root.exists():
         raise AicosMcpReadError("missing_project_scope", "Project scope does not exist.", {"scope": scope, "path": rel(project_root)})
     return project_id, project_root
@@ -580,7 +581,7 @@ def context_registry_read_payload(actor: str, scope: str, arguments: dict[str, A
             scope,
             [
                 SourceRef(project_root, "project_context_registry_source"),
-                SourceRef(REPO_ROOT / "brain/shared/policies", "shared_policy_registry_source"),
+                SourceRef(brain_path("shared", "policies"), "shared_policy_registry_source"),
                 SourceRef(REPO_ROOT / "packages/aicos-kernel/contracts", "contract_registry_source"),
             ],
         ),
@@ -590,7 +591,7 @@ def context_registry_read_payload(actor: str, scope: str, arguments: dict[str, A
 
 def project_registry_payload(actor: str, scope: str, _arguments: dict[str, Any]) -> dict[str, Any]:
     validate_scope(scope)
-    registry = REPO_ROOT / "brain/shared/project-registry.md"
+    registry = brain_path("shared", "project-registry.md")
     body = read_text(registry)
     projects: list[dict[str, str]] = []
     current: dict[str, str] | None = None
@@ -747,11 +748,11 @@ def query_candidate_sources(actor: str, scope: str, kinds: set[str], include_sta
     if include("open_questions"):
         sources.append(("open_questions", project_root / "working/open-questions.md"))
     if include_selected("project_registry"):
-        sources.append(("project_registry", REPO_ROOT / "brain/shared/project-registry.md"))
+        sources.append(("project_registry", brain_path("shared", "project-registry.md")))
     if include_selected("canonical"):
         sources.extend(("canonical", path) for path in markdown_files_under(project_root / "canonical"))
     if include_selected("policy"):
-        sources.extend(("policy", path) for path in markdown_files_under(REPO_ROOT / "brain/shared/policies"))
+        sources.extend(("policy", path) for path in markdown_files_under(brain_path("shared", "policies")))
     if include_selected("contract"):
         sources.extend(("contract", path) for path in markdown_files_under(REPO_ROOT / "packages/aicos-kernel/contracts"))
     if include("packets"):
@@ -868,6 +869,8 @@ def query_project_context(actor: str, scope: str, arguments: dict[str, Any]) -> 
         "task_state",
         "workstreams",
         "artifacts",
+        "feedback",
+        "evidence",
         "open_items",
         "open_questions",
         "canonical",
@@ -1026,7 +1029,7 @@ def startup_bundle(actor: str, scope: str, arguments: dict[str, Any]) -> dict[st
     project_ladder = paths["project_ladder"]
     role_or_profile = paths["role_or_profile"]
     working_rules = paths["working_rules"]
-    coordination_policy = REPO_ROOT / "brain/shared/policies/agent-coordination-policy.md"
+    coordination_policy = brain_path("shared", "policies", "agent-coordination-policy.md")
     contract_doc = REPO_ROOT / "packages/aicos-kernel/contracts/mcp-bridge/local-mcp-bridge-contract.md"
     packet_index = packet_index_payload(actor, scope)
 

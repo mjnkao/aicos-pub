@@ -45,7 +45,8 @@ Use dedicated access labels such as a2-core-c for AICOS-maintainer sessions. Use
 
 ## Trace Refs
 
-- source_ref: `codex-thread-20260428-token-scope-authz`
+- session_refs:
+  - `codex-thread-20260428-token-scope-authz`
 
 ## Boundary
 

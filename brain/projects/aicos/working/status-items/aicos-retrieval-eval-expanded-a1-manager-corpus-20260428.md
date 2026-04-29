@@ -1,24 +1,24 @@
 # Status Item: aicos-retrieval-eval-expanded-a1-manager-corpus-20260428
 
-Status: open
+Status: resolved
 Item type: `decision_followup`
 Type guidance: A decision already made that needs tracking through implementation, rollout, verification, or cleanup.
 Project: `aicos`
 Scope: `projects/aicos`
 Item id: `aicos-retrieval-eval-expanded-a1-manager-corpus-20260428`
 Title: Expanded A1/human-manager retrieval eval corpus and HTTP runner
-Last write id: `aicos-retrieval-eval-expanded-20260428`
-Last updated at: `2026-04-28T06:23:24+00:00`
+Last write id: `20260428T153324Z-685e9af510`
+Last updated at: `2026-04-28T15:33:24+00:00`
 
 ## Actor Identity
 
 Actor role: `A2-Core-C`
 Agent family: `codex`
-Agent instance id: `codex-thread-20260428-retrieval-eval`
-Agent display name: `unknown`
-Work type: `ops`
-Work lane: `retrieval-eval`
-Coordination status: `active`
+Agent instance id: `codex-thread-20260428-checklist-relation-audit`
+Agent display name: `Codex Desktop`
+Work type: `planning`
+Work lane: `checklist-reconciliation`
+Coordination status: `completed`
 Artifact scope: `unspecified`
 Work branch: `unknown`
 Worktree path: `unknown`
@@ -26,10 +26,27 @@ Execution context: `codex-desktop`
 Legacy actor family: `codex`
 Legacy logical role: `A2-Core-C`
 Work context: ``
+Runtime: `private-local-aicos`
+MCP name: `aicos_http`
+Agent position: `internal_agent`
+Functional role: `AICOS maintainer`
+Runtime identity map:
+```json
+{
+  "identity_private": {
+    "actor_role": "A2-Core-C",
+    "agent_position": "internal_agent",
+    "functional_role": "AICOS maintainer",
+    "mcp_name": "aicos_http",
+    "project_scope": "projects/aicos",
+    "runtime": "private-local-aicos"
+  }
+}
+```
 
 ## Summary
 
-Added a stdlib-only HTTP MCP retrieval eval runner and expanded the corpus to 23 A1/human-manager questions. Latest run: top-3 20/23, top-5 23/23, errors 0. This is the regression gate before small search/ranking changes.
+The expanded retrieval eval runner/corpus is now baseline infrastructure. Current corpus has 59 items across projects/aicos, projects/sample-project, and mjnclaw smoke; latest gate passes top3 57/59, top5 59/59, errors 0.
 
 ## Item Type Guidance
 
@@ -37,19 +54,15 @@ A decision already made that needs tracking through implementation, rollout, ver
 
 ## Reason
 
-AICOS search work should be eval-driven and lightweight for the small-team profile instead of adding graph/reranker/substrate complexity prematurely.
+The old next step referenced three early top3 misses. Those were addressed by later direct-read nudges, answer playbook, corpus expansion, and gate tuning.
 
 ## Next Step
 
-Use scripts/aicos-retrieval-eval before search changes. Investigate the three top-3 misses with direct-read nudges and current controlling status-item ranking, without adding heavy infrastructure.
+Keep resolved. Continue running scripts/aicos-retrieval-eval --max-results 5 --gate before search changes.
 
 ## Trace Refs
 
-- artifact_refs:
-  - `scripts/aicos-retrieval-eval`
-  - `brain/projects/aicos/evidence/research/aicos-retrieval-eval-corpus-20260428.json`
-  - `brain/projects/aicos/evidence/research/aicos-gbrain-search-patterns-for-a1-eval-20260428.md`
-- source_ref: `brain/projects/aicos/evidence/research/aicos-retrieval-eval-run-20260428.md`
+- source_ref: `scripts/aicos-retrieval-eval`
 
 ## Boundary
 

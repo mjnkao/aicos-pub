@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .mcp_contract_status import contract_error_details, contract_status_payload
+from .paths import brain_path, repo_rel
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -34,6 +35,7 @@ ALLOWED_AGENT_POSITIONS = {"external_agent", "internal_agent", "human_operator",
 ALLOWED_STATUS_ITEM_TYPES = {"open_item", "open_question", "tech_debt", "decision_followup"}
 ALLOWED_STATUS_ITEM_STATUSES = {"open", "resolved", "closed", "stale", "deferred", "blocked"}
 ALLOWED_ARTIFACT_KINDS = {"note", "report", "diff", "output", "analysis", "contract_check", "dataset", "design", "content", "other"}
+ALLOWED_PROJECT_PROPOSAL_URGENCIES = {"low", "medium", "high"}
 ALLOWED_FEEDBACK_TYPES = {
     "no_issue",
     "query_failed",
@@ -49,6 +51,11 @@ ALLOWED_FEEDBACK_TYPES = {
     "interop_problem",
     "packet_missing_ref",
     "handoff_too_long",
+    "work_state_missing",
+    "work_state_ambiguous",
+    "work_state_stale",
+    "work_state_conflict",
+    "ownership_unclear",
     "role_context_wrong",
     "routing_confusing",
     "other",
@@ -108,7 +115,7 @@ def now_iso() -> str:
 
 
 def rel(path: Path) -> str:
-    return str(path.relative_to(REPO_ROOT))
+    return repo_rel(path)
 
 
 def read_text(path: Path) -> str:
@@ -147,10 +154,27 @@ def validate_scope(scope: str) -> tuple[str, Path]:
             {"scope": scope, "supported_shape": "projects/<project-id>"},
         )
     project_id = scope.split("/", 1)[1]
-    project_root = REPO_ROOT / "brain/projects" / project_id
+    project_root = brain_path("projects", project_id)
     if not project_root.exists():
         raise AicosMcpWriteError("missing_project_scope", "Project scope does not exist.", {"scope": scope, "path": rel(project_root)})
     return project_id, project_root
+
+
+def validate_project_scope_shape(scope: str) -> str:
+    if not scope.startswith("projects/") or scope.count("/") != 1:
+        raise AicosMcpWriteError(
+            "unsupported_scope",
+            "Project proposal writes require the requested project scope shape.",
+            {"scope": scope, "supported_shape": "projects/<proposed-project-id>"},
+        )
+    project_id = scope.split("/", 1)[1].strip()
+    if not project_id or safe_slug(project_id, fallback="") != project_id:
+        raise AicosMcpWriteError(
+            "invalid_project_id",
+            "proposed project id must be a stable slug using letters, numbers, dots, underscores, or hyphens.",
+            {"scope": scope, "project_id": project_id},
+        )
+    return project_id
 
 
 def reject_raw_write_keys(payload: dict[str, Any]) -> None:
@@ -362,6 +386,14 @@ def refs_block(payload: dict[str, Any]) -> list[str]:
         value = optional_string(payload, field, max_len=240)
         if value:
             lines.append(f"- {field}: `{value}`")
+    scope_refs = optional_refs(payload, "scope_refs")
+    if scope_refs:
+        lines.append("- scope_refs:")
+        lines.extend(f"  - `{item}`" for item in scope_refs)
+    session_refs = optional_refs(payload, "session_refs")
+    if session_refs:
+        lines.append("- session_refs:")
+        lines.extend(f"  - `{item}`" for item in session_refs)
     artifact_refs = optional_refs(payload, "artifact_refs")
     if artifact_refs:
         lines.append("- artifact_refs:")
@@ -574,11 +606,14 @@ def upsert_markdown_section(path: Path, heading: str, body: str) -> None:
     write_text(path, updated)
 
 
-def base_payload(payload: dict[str, Any]) -> dict[str, Any]:
+def base_payload(payload: dict[str, Any], *, require_existing_scope: bool = True) -> dict[str, Any]:
     reject_raw_write_keys(payload)
     require_contract_ack(payload)
     scope = require_string(payload, "scope", max_len=120)
-    validate_scope(scope)
+    if require_existing_scope:
+        validate_scope(scope)
+    else:
+        validate_project_scope_shape(scope)
     submitted_actor_role = require_string(payload, "actor_role", max_len=80)
     actor_role = normalize_actor_role(submitted_actor_role)
     agent_family = require_string(payload, "agent_family", max_len=120)
@@ -1016,6 +1051,103 @@ def record_feedback(payload: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def propose_project(payload: dict[str, Any]) -> dict[str, Any]:
+    base = base_payload(payload, require_existing_scope=False)
+    proposed_project_id = require_string(payload, "proposed_project_id", max_len=120)
+    scope_project_id = validate_project_scope_shape(base["scope"])
+    if proposed_project_id != scope_project_id:
+        raise AicosMcpWriteError(
+            "project_id_scope_mismatch",
+            "proposed_project_id must match scope projects/<proposed_project_id>.",
+            {"scope": base["scope"], "scope_project_id": scope_project_id, "proposed_project_id": proposed_project_id},
+        )
+    project_root = brain_path("projects", proposed_project_id)
+    if project_root.exists():
+        raise AicosMcpWriteError(
+            "project_already_exists",
+            "This project scope already exists. Use project-scoped status, task, handoff, artifact, or feedback tools instead.",
+            {"scope": base["scope"], "path": rel(project_root)},
+        )
+    title = require_string(payload, "title", max_len=240)
+    summary = require_string(payload, "summary", max_len=SUMMARY_MAX_LEN)
+    reason = require_string(payload, "reason", max_len=900)
+    initial_goal = optional_string(payload, "initial_goal", max_len=900)
+    suggested_owner = optional_string(payload, "suggested_owner", max_len=160)
+    urgency = optional_string(payload, "urgency", max_len=80) or "medium"
+    if urgency not in ALLOWED_PROJECT_PROPOSAL_URGENCIES:
+        raise AicosMcpWriteError(
+            "invalid_enum",
+            "urgency is not allowed.",
+            {"field": "urgency", "allowed": sorted(ALLOWED_PROJECT_PROPOSAL_URGENCIES), "received": urgency},
+        )
+    source_ref = optional_string(payload, "source_ref", max_len=240)
+    suggested_context_sources = optional_refs(payload, "suggested_context_sources")
+    timestamp = now_iso()
+    write_id_value = write_id("aicos_propose_project", {**payload, "task_ref": proposed_project_id}, timestamp)
+    target = brain_path("workspaces", "main", "working", "project-proposals", f"{safe_slug(write_id_value)}.md")
+    ref_lines = refs_block(payload)
+    if source_ref:
+        ref_lines.append(f"- source_ref: `{source_ref}`")
+    if suggested_context_sources:
+        ref_lines.append("- suggested_context_sources:")
+        ref_lines.extend(f"  - `{item}`" for item in suggested_context_sources)
+    body = "\n".join(
+        [
+            f"# Project Proposal: {title}",
+            "",
+            "Status: proposed",
+            f"Urgency: `{urgency}`",
+            f"Proposed project id: `{proposed_project_id}`",
+            f"Requested scope: `{base['scope']}`",
+            f"Write id: `{write_id_value}`",
+            f"Written at: `{timestamp}`",
+            f"Last updated at: `{timestamp}`",
+            "",
+            "## Actor Identity",
+            "",
+            *actor_identity_block(base),
+            "",
+            "## Summary",
+            "",
+            summary,
+            "",
+            "## Reason",
+            "",
+            reason,
+            "",
+            "## Initial Goal",
+            "",
+            initial_goal or "unspecified",
+            "",
+            "## Suggested Owner",
+            "",
+            suggested_owner or "unspecified",
+            "",
+            "## Trace Refs",
+            "",
+            *markdown_list(ref_lines),
+            "",
+            "## Boundary",
+            "",
+            "Recorded through MCP semantic project-proposal write. This is an intake request only; it does not create a project brain, project registry entry, token scope, task state, or canonical truth until reviewed and promoted by an authorized maintainer.",
+        ]
+    )
+    write_text(target, body)
+    meta = trace_metadata("aicos_propose_project", {**payload, **base, "task_ref": proposed_project_id}, [target], timestamp, write_id_value)
+    return {
+        "metadata": meta,
+        "status": "success",
+        "normalized_project_proposal": {
+            "proposed_project_id": proposed_project_id,
+            "scope": base["scope"],
+            "title": title,
+            "urgency": urgency,
+            "path": rel(target),
+        },
+        "boundary": "Proposal recorded only. AICOS did not create the project scope.",
+    }
+
+
 def dispatch_write_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     scope = arguments.get("scope", "")
     if isinstance(scope, str) and scope:
@@ -1037,4 +1169,6 @@ def _dispatch_write_tool_unlocked(name: str, arguments: dict[str, Any]) -> dict[
         return register_artifact_ref(arguments)
     if name == "aicos_record_feedback":
         return record_feedback(arguments)
+    if name == "aicos_propose_project":
+        return propose_project(arguments)
     raise AicosMcpWriteError("unknown_write_tool", "Unknown Phase 2 MCP write tool.", {"tool": name})

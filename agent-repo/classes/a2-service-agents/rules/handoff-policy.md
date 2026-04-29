@@ -21,7 +21,8 @@ Project-scoped active handoff lives with the project.
 - H2 episodic notes: `brain/projects/<project-id>/working/handoff/episodes/`
 - H2 naming: `YYYY-MM-DD_<actor-lane>_<topic>.md`
 - Shared/system-wide handoffs only: `brain/shared/handoffs/`
-- Migration and implementation provenance: `docs/migration/`
+- Migration and implementation provenance: Git history or explicit evidence
+  refs, not default startup docs.
 
 For `projects/aicos`, the sole H1 current handoff index is:
 

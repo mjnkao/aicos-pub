@@ -35,8 +35,9 @@ inspect the MCP contract and smoke-test the bounded read surface:
 ./aicos mcp read startup-bundle --actor A2-Core-C --scope projects/aicos
 ```
 
-Do not bulk-read `docs/New design/`, `docs/migration/`, old handoff backups, or
-all task packets at startup.
+Do not bulk-read old design/migration provenance from Git history, old handoff
+backups, or all task packets at startup. Use `docs/architecture/README.md` for
+the current architecture map.
 
 Read `brain/projects/aicos/working/handoff/current.md` only if this is a
 continuation, migration/state alignment, repo-wide architecture task, or

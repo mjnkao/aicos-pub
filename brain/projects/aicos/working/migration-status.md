@@ -20,7 +20,7 @@ Trong đó:
 
 - `root/`: old root context, runtime/cache, old lanes, imports, reports,
   gateway, bridges, artifacts, data, tmp.
-- `docs/`: old docs ngoài `docs/New design` và `docs/migration`.
+- `docs/`: old docs that were outside the active public documentation surface.
 - `scripts/`: old scripts ngoài `scripts/aicos` và `scripts/gbrain_local.sh`.
 - `previous-backup/`: backup cũ trước cleanup.
 

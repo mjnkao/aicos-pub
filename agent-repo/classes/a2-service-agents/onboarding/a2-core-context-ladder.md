@@ -77,7 +77,7 @@ What you learn:
 - What changed most recently and which older paths are stale.
 - Which provenance notes are worth opening on demand.
 
-Do not read all old handoffs, backup, or `docs/migration/` at startup.
+Do not read all old handoffs, backups, or Git-history provenance at startup.
 
 ## Layer 4 — Chosen Task Packet
 
@@ -110,20 +110,20 @@ What you learn:
 Open longer files in `agent-repo/classes/a2-service-agents/rules/` only when the
 rule card is not enough.
 
-## Layer 6 — Architecture Overview
+## Layer 6 — Current Architecture Overview
 
 Read when you need a broader map before editing architecture:
 
+- `docs/architecture/README.md`
 - `brain/projects/aicos/working/architecture-working-summary.md`
-- `brain/projects/aicos/evidence/policy-sources/policy-source-index.md`
 
 What you learn:
 
-- The current architecture digest.
-- Where long source policies and design specs came from, without loading them
-  all.
+- The current architecture digest and active design anchors.
+- Which research/design docs are current implementation direction.
 
-Open `docs/New design/` files only through this index or a task packet.
+Do not use removed long-form design/migration files as current architecture. If
+needed, inspect them only through Git history as provenance.
 
 ## Layer 7 — Source Code Or Specific Subsystem
 
@@ -180,12 +180,12 @@ Useful debug read:
 
 Read only when the current handoff, task packet, or human asks for provenance:
 
-- specific files in `docs/migration/`
-- specific files in `docs/New design/`
-- specific backup paths
+- specific historical files from Git history
+- specific backup paths when available locally
 
 What you learn:
 
 - Why a decision or migration happened.
 
-These files do not override current project truth in `brain/projects/aicos/`.
+Historical files do not override current project truth in
+`brain/projects/aicos/` or the current architecture index.

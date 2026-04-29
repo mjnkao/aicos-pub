@@ -1105,7 +1105,7 @@ def startup_bundle(actor: str, scope: str, arguments: dict[str, Any]) -> dict[st
         "packet_index": packet_index["packets"],
         "rule_card_refs": paths["rule_cards"],
         "not_loaded": [
-            "long design docs under docs/New design/",
+            "historical design/migration provenance from Git history",
             "old handoff provenance backup",
             "backup/import/runtime/cache material",
             "network, API, UI, or external memory state",

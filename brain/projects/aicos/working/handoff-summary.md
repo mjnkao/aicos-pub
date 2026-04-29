@@ -18,9 +18,9 @@ brain/projects/aicos/working/handoff/current.md
 - H3 self-brain digest: thông tin stable/current được tiêu hóa vào
   `brain/projects/aicos/working/`.
 
-Convention hiện tại: project continuity sống cùng project. `docs/migration/`
-giữ implementation/migration notes và provenance; không còn là nhà mặc định cho
-active project handoff.
+Convention hiện tại: project continuity sống cùng project. Historical
+implementation/migration notes là provenance only; không còn là nhà mặc định
+cho active project handoff.
 
 ## Startup Path Ngắn
 

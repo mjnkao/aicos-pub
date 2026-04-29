@@ -20,14 +20,15 @@ cho `projects/aicos`.
 - H3 self-brain digest: các file ngắn trong `brain/projects/aicos/working/`.
 - `brain/projects/aicos/working/handoff-summary.md` chỉ là digest/reference phụ,
   không phải startup authority và không ngang quyền với file này.
-- `docs/migration/` giữ implementation notes, migration notes, và provenance.
-  Không dùng làm nhà mặc định lâu dài cho active project handoff.
+- Historical implementation/migration provenance is not part of the default
+  public docs surface. Use current handoff/status/evidence first; inspect Git
+  history only when provenance is explicitly needed.
 - Handoff cũ đã được move vào `backup/handoff-provenance-20260418/` để kiểm tra
   khi cần; không nằm trên đường đọc startup.
 
 ## Newest / Current
 
-- Active handoff lane đã được chuẩn hóa mềm từ `docs/migration/` sang
+- Active handoff lane đã được chuẩn hóa mềm sang
   `brain/projects/aicos/working/handoff/current.md`.
 - Startup vẫn theo hướng packet-first và index-first: không load toàn bộ docs,
   handoffs, rules, hoặc task packets khi chưa có task cụ thể.
@@ -246,7 +247,8 @@ cho `projects/aicos`.
 ## Next Agent Notes
 
 - Đừng dùng `current-state.md` làm inbox.
-- Đừng đọc toàn bộ `docs/New design/` hoặc `docs/migration/` ở startup.
+- Đừng đọc historical design/migration provenance ở startup. Bắt đầu từ
+  `docs/architecture/README.md` nếu cần architecture map.
 - Đừng đọc `backup/handoff-provenance-20260418/` trừ khi human yêu cầu audit
   hoặc cần đối chiếu migration history.
 - Nếu chưa có task cụ thể, đọc orientation + packet index rồi hỏi human muốn
@@ -265,28 +267,10 @@ cho `projects/aicos`.
   từ đầu. Việc còn lại là real-client smoke cho Codex Desktop, Claude Code,
   Claude Desktop, Antigravity, và OpenClaw/mjnclaw khi các agent đó tiếp tục
   dùng AICOS. Không giữ Phase 1 bị block chỉ vì chưa có đủ real-client smoke.
-- Nếu cần provenance của normalization storage/handoff, xem
-  `docs/migration/STR-26185_storage_structure_implementation_note.md`.
-- Nếu cần provenance của handoff-ready task metadata, xem
-  `docs/migration/HMD-26210_handoff_ready_task_metadata_implementation_note.md`.
-- Nếu cần provenance của real-project readiness pass, xem
-  `docs/migration/CHK-26216_real_project_readiness_implementation_note.md`.
-- Nếu cần provenance của A1 identity/layered-rules pass, xem
-  `docs/migration/A1-26224_a1_identity_layered_rules_implementation_note.md`.
-- Nếu cần provenance của A1 artifact-neutral pass, xem
-  `docs/migration/A1-26233_a1_artifact_neutral_implementation_note.md`.
-- Nếu cần provenance của sample project import/MCP bridge scaffold, xem
-  `docs/migration/IMP-26249_BRG-26250_btc_import_bridge_scaffold_note.md`.
-- Nếu cần provenance của shared Import Kit templates, xem
-  `docs/migration/KIT-26261_import_kit_template_system_note.md`.
-- Nếu cần provenance của IMP-26269 kit audit/readiness pass, xem
-  `docs/migration/IMP-26269_KIT_AUDIT_import_readiness_note.md`.
-- Nếu cần provenance của MCP Phase 1 read-serving pass, xem
-  `docs/migration/MCP_PHASE1_READ_SERVING_20260419.md`.
-- Nếu cần provenance của MCP Phase 2 write tools pass, xem
-  `docs/migration/MCP_PHASE2_WRITE_TOOLS_20260419.md`.
-- Nếu cần provenance của agent onboarding/front-door refresh, xem
-  `docs/migration/AGENT_ONBOARDING_FRONT_DOOR_REFRESH_20260419.md`.
+- Nếu cần provenance cũ của normalization, handoff metadata, real-project
+  readiness, A1 role passes, import-kit work, hoặc MCP phase notes, dùng Git
+  history hoặc evidence refs theo task cụ thể. Các file migration cũ đã được
+  gỡ khỏi public docs surface để tránh bị hiểu nhầm là current direction.
 
 ## Recent Continuity Digest
 

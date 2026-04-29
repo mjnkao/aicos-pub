@@ -16,8 +16,8 @@ Active root hiện gồm:
 - `serving/`
 - `backend/`
 - `integrations/`
-- `docs/New design/`
-- `docs/migration/`
+- `docs/architecture/`
+- `docs/install/`
 - `tools/gbrain/`
 
 ## Đã Có

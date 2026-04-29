@@ -9,7 +9,7 @@ Loại: H2 episodic handoff note
 `STR-26185` chuẩn hóa nơi lưu handoff, open items, open questions, risks,
 research, và agent tasks. Điểm thay đổi quan trọng là active project handoff
 nên sống cùng project trong `brain/projects/aicos/working/handoff/current.md`,
-không ở lâu dài trong `docs/migration/`.
+không ở lâu dài trong historical migration notes.
 
 ## Việc Đã Làm
 
@@ -32,4 +32,5 @@ Không giữ handoff cũ trên đường đọc active. Nội dung current cần
 
 - Migrate episodic handoffs cũ on-demand nếu một task cần nối lại lịch sử.
 - Mở rộng `context start` để ưu tiên H1 mới khi startup cần handoff.
-- Xem lại `docs/migration/` định kỳ để tránh bị hiểu nhầm là current truth.
+- Xem lại historical migration notes định kỳ để tránh bị hiểu nhầm là current
+  truth.

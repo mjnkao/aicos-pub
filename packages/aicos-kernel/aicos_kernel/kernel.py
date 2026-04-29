@@ -834,7 +834,7 @@ def context_start(args: argparse.Namespace) -> int:
     print("")
     print("## Not Loaded")
     print("")
-    print("- long design docs under `docs/New design/`")
+    print("- historical design/migration provenance from Git history")
     print("- old handoff provenance under `backup/handoff-provenance-20260418/`")
     print("- backup/import/runtime/cache material")
     print("- network, API, UI, or external memory state")

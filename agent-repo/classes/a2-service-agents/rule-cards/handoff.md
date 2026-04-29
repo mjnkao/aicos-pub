@@ -23,8 +23,8 @@ This is the sole H1 current handoff index for `projects/aicos`.
 - Project episodic notes:
   `brain/projects/<project-id>/working/handoff/episodes/YYYY-MM-DD_<actor-lane>_<topic>.md`
 - Shared/system-wide handoffs only: `brain/shared/handoffs/`
-- `docs/migration/` is for migration/implementation provenance, not default
-  active handoff.
+- Historical migration/implementation provenance is not default active handoff.
+  Use Git history or explicit evidence refs only when provenance is needed.
 - `brain/projects/aicos/working/handoff-summary.md` is digest/reference only,
   not H1 authority.
 - Superseded/stale handoffs are reference-only unless the current index points

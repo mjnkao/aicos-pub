@@ -18,8 +18,7 @@ not from a code-only package.
   `brain/projects/aicos/working/open-questions.md`
 - Structured backlog: `brain/projects/aicos/working/status-items/`
 - Task state: `brain/projects/aicos/working/task-state/`
-- Architecture source docs: `docs/architecture/design-source/`
-- Migration/provenance notes: `docs/architecture/migration/`
+- Current architecture index: `docs/architecture/README.md`
 - Current research and decision memos:
   `brain/projects/aicos/evidence/research/`
 

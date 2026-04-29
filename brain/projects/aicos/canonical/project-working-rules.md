@@ -154,8 +154,9 @@ Ngày cập nhật: 2026-04-21.
   pass/test/episode và đọc on-demand để xem provenance hoặc chi tiết.
 - H3 self-brain digest: thông tin stable/current từ handoff phải được tiêu hóa
   vào `brain/projects/aicos/working/`.
-- `docs/migration/` giữ migration notes, implementation notes, review notes, và
-  provenance; không phải nhà lâu dài của active project handoff.
+- Historical migration notes, implementation notes, and review notes are
+  provenance only; they are not part of the default public docs surface and are
+  not the long-term home of active project handoff.
 - Handoff cũ/provenance không nằm trên đường đọc startup; nếu cần audit thì xem
   `backup/handoff-provenance-20260418/`.
 - `brain/shared/handoffs/` chỉ dùng cho handoff thật sự cross-project hoặc
@@ -202,8 +203,8 @@ Ngày cập nhật: 2026-04-21.
 - Mỗi project có thể cung cấp context ladder riêng tại
   `brain/projects/<project-id>/working/context-ladder.md` để giải thích hot
   context, conditional handoff, task packets, evidence, và deep source paths.
-- Raw docs dài trong `docs/New design/` là source/evidence, không phải startup
-  context mặc định.
+- Historical long-form design docs are source/evidence provenance, not default
+  startup context. Use `docs/architecture/README.md` for current architecture.
 - Backup legacy ở `backup/pre-restructure-20260418/` chỉ đọc khi cần migration,
   provenance, hoặc comparison.
 - AICOS dùng hướng packet-first: role card, current state, current direction,

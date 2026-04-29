@@ -15,8 +15,9 @@ Read first:
 - `brain/projects/aicos/canonical/project-working-rules.md`
 - relevant `brain/projects/aicos/working/*` files for the task
 
-Long source docs in `docs/New design/` are reference/provenance, not default
-startup context.
+Historical source docs removed from the public docs surface are
+reference/provenance only. Use `docs/architecture/README.md` for the current
+architecture map.
 
 Read the current handoff index only for continuation, migration/state
 alignment, repo-wide architecture, or newest-vs-stale checks:

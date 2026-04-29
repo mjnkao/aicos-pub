@@ -75,6 +75,7 @@ and the relevant project repositories.
 Read these first if you are a new agent or human contributor:
 
 - [Continuation guide](docs/aicos-continuation-guide.md)
+- [Current architecture index](docs/architecture/README.md)
 - [Current state](brain/projects/aicos/working/current-state.md)
 - [Current direction](brain/projects/aicos/working/current-direction.md)
 - [Current handoff](brain/projects/aicos/working/handoff/current.md)
@@ -107,7 +108,7 @@ MCP/operator guides:
 - `serving/`: generated context surfaces, option packets, branch comparisons,
   and promotion review packets.
 - `backend/`: local substrate and indexing support, not the truth store.
-- `docs/`: architecture, install, migration, and deployment guides.
+- `docs/`: current architecture index, install, MCP, and deployment guides.
 
 ## Authority Model
 

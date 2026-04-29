@@ -3,6 +3,13 @@
 This runbook turns the 2026-04-28 deployment pass into a repeatable setup guide
 for running `aicos-pub` as a public Railway MCP server.
 
+If you are a fresh agent and need a shorter local/LAN/Railway path first, start
+with:
+
+```text
+docs/install/AICOS_AGENT_INSTALL_QUICKSTART.md
+```
+
 It covers:
 
 - Railway app deployment
@@ -29,11 +36,26 @@ index.embedding_coverage: 1.0
 ## Prerequisites
 
 - GitHub repo for `aicos-pub`
-- Railway CLI logged in
+- Railway CLI installed and logged in
 - Railway project linked to this checkout
 - OpenAI API key for embedding search
 - A strong primary daemon bearer token
 - One bearer token per external agent/client
+
+Install Railway CLI using one official method:
+
+- Homebrew on macOS
+- npm on macOS/Linux/Windows with Node.js 16+
+- Railway shell installer
+- prebuilt binary
+
+Then authenticate:
+
+```bash
+railway login
+```
+
+For browserless machines, use Railway's browserless login or a project token.
 
 Check Railway login:
 
@@ -309,7 +331,7 @@ railway up --ci --message "Deploy aicos-pub Railway MCP"
 If only variables changed, Railway may need redeploy, not just restart:
 
 ```bash
-railway service redeploy --service aicos-pub --yes --json
+railway redeploy --service aicos-pub --yes --json
 ```
 
 After redeploy, wait for success:
@@ -330,7 +352,7 @@ search_engine: markdown_direct
 Fix:
 
 ```bash
-railway service restart --service aicos-pub --yes --json
+railway restart --service aicos-pub --yes --json
 ```
 
 Then retest `/health`.
@@ -594,5 +616,5 @@ This log is the raw operational history. This runbook is the clean install path.
 | `markdown_direct` | PostgreSQL schema lock timeout or no DSN | Confirm `AICOS_PG_DSN`, then restart service |
 | `postgresql_fts` | PostgreSQL active, embeddings missing | Set `OPENAI_API_KEY` and embedding vars, redeploy/restart |
 | `missing_project_scope` | `brain/projects/agents-dashboard` missing | Add minimal public scope files, commit, deploy |
-| New token label not visible | Running deployment has old env snapshot | `railway service redeploy`, then restart if lock timeout occurs |
+| New token label not visible | Running deployment has old env snapshot | `railway redeploy --service aicos-pub --yes`, then restart if lock timeout occurs |
 | Railway healthcheck fails | `/health` requires bearer token | Do not use unauthenticated Railway `healthcheckPath` |

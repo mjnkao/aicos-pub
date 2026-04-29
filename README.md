@@ -184,6 +184,7 @@ Key architecture anchors:
 
 MCP/operator guides:
 
+- [Agent install quickstart](docs/install/AICOS_AGENT_INSTALL_QUICKSTART.md)
 - [Query/search guide](docs/install/AICOS_QUERY_SEARCH_GUIDE.md)
 - [MCP write cookbook](docs/install/AICOS_MCP_WRITE_COOKBOOK.md)
 - [Railway agent connection guide](docs/install/AICOS_PUB_RAILWAY_AGENT_CONNECT.md)

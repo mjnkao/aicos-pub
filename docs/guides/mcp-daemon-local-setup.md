@@ -6,6 +6,12 @@ This guide covers the optional HTTP daemon for local or trusted-LAN use. It is
 written as a public setup path and intentionally omits private machine state,
 handoffs, and project-specific operations.
 
+For the shortest full local/LAN/Railway checklist, start with:
+
+```text
+docs/install/AICOS_AGENT_INSTALL_QUICKSTART.md
+```
+
 ## What This Adds
 
 The daemon exposes the same AICOS MCP surface as the local stdio bridge, but

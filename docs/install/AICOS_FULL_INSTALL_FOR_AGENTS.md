@@ -6,6 +6,12 @@ Last updated: 2026-04-23
 This guide is the front door for a fresh agent that receives only the AICOS
 GitHub repository link and a human request to install AICOS on a target machine.
 
+If you need the shortest path first, start with:
+
+```text
+docs/install/AICOS_AGENT_INSTALL_QUICKSTART.md
+```
+
 Goal: install AICOS so the HTTP MCP daemon serves all tools, Claude Desktop uses
 stdio transport, Claude Code uses HTTP-first with stdio fallback, the daemon
 auto-starts on macOS login, and LAN agents can connect via HTTP.

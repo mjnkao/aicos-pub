@@ -32,6 +32,7 @@ direction.
 
 ## Runtime Identity And Access
 
+- [Agent install quickstart](../install/AICOS_AGENT_INSTALL_QUICKSTART.md)
 - [Runtime agent identity boundary](runtime-agent-identity-boundary.md)
 - [Runtime identity schema](runtime-identity-schema.md)
 - [Railway agent connection guide](../install/AICOS_PUB_RAILWAY_AGENT_CONNECT.md)

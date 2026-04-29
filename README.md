@@ -70,6 +70,43 @@ The Work State Ledger direction may project tasks/open items/questions/tech
 debt into dashboard views later, but the authority remains AICOS semantic state
 and the relevant project repositories.
 
+## Related Work And Influences
+
+AICOS is not built in a vacuum. It explicitly learns from nearby open-source
+projects, memory products, orchestration frameworks, and PM tools. The goal is
+to acknowledge those influences while keeping AICOS' own boundary clear.
+
+- [GBrain](https://github.com/garrytan/gbrain): the strongest current
+  influence on retrieval/search substrate, MCP-native memory/search, freshness
+  discipline, skills, jobs, and page/link organization. AICOS should reuse or
+  wrap GBrain-like substrate patterns where they fit, but should not copy
+  GBrain's product identity or make a GBrain database the AICOS truth store.
+- [Memobase](https://memobase.ai/) and [Membase](https://membase.so/): validate
+  the need for persistent memory shared across agents and MCP-compatible tools.
+  AICOS learns from that memory-layer direction, but narrows its own scope to
+  project authority, handoff, status, and control-plane semantics.
+- [GitAgent](https://github.com/open-gitagent/gitagent): validates
+  git-native, reviewable agent configuration, identity, and audit surfaces.
+  AICOS shares the preference for file-backed, inspectable operating state, but
+  adds its own project truth/working/evidence model.
+- [LangGraph](https://docs.langchain.com/oss/javascript/langgraph/persistence),
+  [LangMem](https://langchain-ai.github.io/langmem/), CrewAI, and Mem0:
+  validate persistence, checkpoints, orchestration, and memory as mainstream
+  agent-runtime concerns. AICOS treats these as runtime/substrate ideas, not as
+  replacements for AICOS' semantic control-plane.
+- Plane, ClickUp, Linear, Jira, and similar PM systems: validate the need for
+  dashboard views, work items, relations, ownership, comments, notifications,
+  and human workflow. AICOS may integrate with these tools, but should not
+  become a PM clone or let external board fields overwrite AICOS semantic
+  authority.
+
+The current architecture direction is therefore reuse-first at the substrate
+layer and AICOS-owned at the semantic/control-plane layer. See the market and
+substrate review in
+[AICOS Market Landscape And Substrate Comparison](brain/projects/aicos/evidence/research/aicos-market-landscape-and-substrate-comparison-20260428.md)
+and the
+[AICOS On Top Of GBrain decision memo](brain/projects/aicos/evidence/research/aicos-on-gbrain-substrate-decision-memo-20260424.md).
+
 ## Start Here
 
 Read these first if you are a new agent or human contributor:

@@ -421,8 +421,10 @@ class BrainIndexer:
 
     def full_reindex(self, *, with_embeddings: bool = True) -> dict[str, int]:
         """Scan all tracked files and upsert. Returns stats dict."""
-        stats = {"indexed": 0, "skipped": 0, "embedded": 0, "embedding_errors": 0, "errors": 0}
-        for path in self._scan_all():
+        stats = {"indexed": 0, "skipped": 0, "removed": 0, "embedded": 0, "embedding_errors": 0, "errors": 0}
+        scanned_paths = list(self._scan_all())
+        active_refs = self._active_source_refs(scanned_paths)
+        for path in scanned_paths:
             try:
                 updated = self.reindex_file(path, with_embeddings=with_embeddings)
                 if updated == "embedded":
@@ -437,6 +439,7 @@ class BrainIndexer:
                 stats["errors"] += 1
                 import sys
                 print(f"[indexer] ERROR {path}: {exc}", file=sys.stderr)
+        stats["removed"] = self.prune_missing_refs(active_refs)
         return stats
 
     def full_embed_stale(self, *, scope: str = "", limit: int | None = None) -> dict[str, int]:
@@ -695,6 +698,20 @@ class BrainIndexer:
             )
         self.conn.commit()
 
+    def prune_missing_refs(self, active_refs: set[str]) -> int:
+        """Remove DB rows for files no longer present in the indexed corpus."""
+        with self.conn.cursor() as cur:
+            if active_refs:
+                cur.execute(
+                    "DELETE FROM aicos_context_docs WHERE NOT (source_ref = ANY(%s))",
+                    (list(active_refs),),
+                )
+            else:
+                cur.execute("DELETE FROM aicos_context_docs")
+            removed = int(cur.rowcount or 0)
+        self.conn.commit()
+        return removed
+
     def index_stats(self) -> dict[str, Any]:
         with self.conn.cursor() as cur:
             cur.execute(
@@ -779,6 +796,14 @@ class BrainIndexer:
         }
 
     # -- Internal --------------------------------------------------------
+
+    def _active_source_refs(self, paths: list[Path]) -> set[str]:
+        refs: set[str] = set()
+        for path in paths:
+            meta = path_metadata(path, self.repo_root)
+            if meta is not None and path.exists():
+                refs.add(str(meta["source_ref"]))
+        return refs
 
     def _scan_all(self):
         roots = [

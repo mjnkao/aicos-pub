@@ -2,10 +2,15 @@
 
 Status: public staging snapshot, synced from private AICOS on 2026-04-29.
 
-AICOS is a local-first, online-ready context/control-plane for multi-agent
+AICOS is a local-first, team-ready context/control-plane for multi-agent
 project work. It gives humans and agents a shared project reality without
 turning every repository into one huge prompt, one chat log, or one private
 memory dump.
+
+Local-first does not mean local-only. AICOS now has a working small-team path:
+run it locally for one operator, expose it on a trusted LAN for a small team, or
+deploy it to Railway as an HTTP MCP service with token auth, PostgreSQL hybrid
+search, pgvector embeddings, and scoped agent access.
 
 This repository is the public continuation package for AICOS. It is generated
 from a private source checkout through the public-export pipeline, then curated
@@ -31,14 +36,15 @@ Near-term deployment profiles are:
 
 - `solo`: local-first project context and MCP access.
 - `small-team`: HTTP MCP daemon, token auth, PostgreSQL hybrid search,
-  pgvector embeddings, and shared project packs.
+  pgvector embeddings, LAN/Railway deployment, and shared project packs.
 - `company-100`: stronger workspace/company packs, governance, audit, and
   service boundaries.
 - `enterprise`: future profile, not the current build target.
 
-The current public Railway runtime is the `small-team` implementation bundle:
-HTTP MCP daemon + PostgreSQL hybrid search + pgvector + token-scoped write
-access + Markdown authority.
+The current public Railway runtime is the `small-team` implementation bundle.
+It proves that AICOS can run beyond a single local checkout while still keeping
+Markdown authority, scoped token access, PostgreSQL hybrid search, and pgvector
+as serving/index layers.
 
 ## What AICOS Is
 
@@ -147,6 +153,22 @@ MCP/operator guides:
 - `backend/`: local substrate and indexing support, not the truth store.
 - `docs/`: current architecture index, install, MCP, and deployment guides.
 
+## Deployment Profiles
+
+AICOS currently supports three practical operating modes:
+
+- Local solo: one human or agent runs AICOS from a checkout and uses the CLI,
+  local MCP bridge, or local HTTP daemon.
+- Trusted LAN: a small team runs the HTTP MCP daemon on a reachable machine
+  with bearer token auth. Non-loopback/LAN mode should not run without auth.
+- Railway small-team: a hosted HTTP MCP service with token-scoped access,
+  PostgreSQL hybrid retrieval, pgvector embeddings, health checks, and external
+  agent connection guides.
+
+The product direction is local-first and team-ready: local files remain the
+human-readable authority, while LAN/Railway runtimes provide shared read/write
+serving for multiple agents and humans.
+
 ## Authority Model
 
 AICOS organizes project knowledge by state:
@@ -210,7 +232,7 @@ You can currently:
 
 - run `./aicos --help`;
 - inspect and extend AICOS kernel contracts and schemas;
-- run the HTTP MCP daemon locally or on Railway;
+- run the HTTP MCP daemon locally, on a trusted LAN, or on Railway;
 - use PostgreSQL hybrid search with pgvector embeddings when configured;
 - connect agents through Streamable HTTP MCP with bearer token auth;
 - read project health, handoff, status items, feedback digest, and bounded
